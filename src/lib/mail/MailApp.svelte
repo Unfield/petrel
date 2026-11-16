@@ -22,12 +22,15 @@
 	store.accounts = accounts.map((a) => ({ ...a, mailboxes: [] }));
 
 	let mobile = $state(false);
+	let width = $state(1440);
 	let systemDark = $state(false);
 	let resizing = $state<'' | 'cols' | 'rows'>('');
 	let main = $state<HTMLElement>();
 	let searchInput = $state<HTMLInputElement>();
 	let userMenu = $state(false);
-	const layout = $derived(mobile ? 'off' : store.prefs.layout);
+	// Narrow windows collapse the sidebar, and below 900px show one pane at a time.
+	const layout = $derived(mobile || width < 900 ? 'off' : store.prefs.layout);
+	const rail = $derived(store.prefs.rail || (!mobile && width < 1100));
 	const dark = $derived(store.prefs.mode === 'dark' || (store.prefs.mode === 'system' && systemDark));
 	const mod = isMac() ? '⌘' : 'Ctrl';
 	const hasAccounts = $derived(store.accounts.length > 0);
@@ -162,11 +165,11 @@
 	}
 </script>
 
-<svelte:window onkeydown={keydown} />
+<svelte:window onkeydown={keydown} bind:innerWidth={width} />
 
 <div
 	class="pm app"
-	class:rail={store.prefs.rail}
+	class:rail
 	class:drawer-open={store.ui.drawer}
 	class:resizing={!!resizing}
 	class:rows={resizing === 'rows'}
@@ -251,7 +254,7 @@
 				<MessageList {store} />
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div class="divider" onpointerdown={startResize} ondblclick={() => (store.setPref('listW', 420), store.setPref('listH', 44))}></div>
-				<Reader {store} {mobile} />
+				<Reader {store} mobile={layout === 'off'} />
 			</main>
 		{/if}
 	</div>
