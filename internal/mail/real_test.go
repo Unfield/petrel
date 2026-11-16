@@ -153,6 +153,16 @@ func TestRealServers(t *testing.T) {
 	if _, err := lena.Move(ctx, []string{moved[got.ID]}, roles[RoleInbox]); err != nil {
 		t.Fatalf("move back: %v", err)
 	}
+	// Leave the mailbox as it was.
+	defer func() {
+		if page, err := lena.Query(ctx, Query{MailboxID: roles[RoleInbox], Limit: 100}); err == nil {
+			for _, m := range page.Messages {
+				if m.Subject == subject {
+					_ = lena.Destroy(ctx, []string{m.ID})
+				}
+			}
+		}
+	}()
 	id, err := lena.SaveDraft(ctx, Outgoing{From: Address{Email: user2}, Subject: "Draft " + subject, Text: "draft"}, "")
 	if err != nil || id == "" {
 		t.Fatalf("draft: %q %v", id, err)

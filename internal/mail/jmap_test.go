@@ -158,8 +158,14 @@ func TestJMAP(t *testing.T) {
 	if err := lena.SetKeywords(ctx, []string{got.ID}, []string{"work"}, nil); err != nil {
 		t.Fatal(err)
 	}
-	page, _ := lena.Query(ctx, Query{MailboxID: lenaBoxes[RoleInbox], Keyword: "work"})
-	if page.Total != 1 || !page.Messages[0].Seen || !page.Messages[0].Flagged || len(page.Messages[0].Keywords) != 1 {
+	page, _ := lena.Query(ctx, Query{MailboxID: lenaBoxes[RoleInbox], Keyword: "work", Limit: 100})
+	var labelled *Summary
+	for i := range page.Messages {
+		if page.Messages[i].ID == got.ID {
+			labelled = &page.Messages[i]
+		}
+	}
+	if labelled == nil || !labelled.Seen || !labelled.Flagged || len(labelled.Keywords) != 1 || labelled.Keywords[0] != "work" {
 		t.Errorf("flags and labels: %+v", page)
 	}
 	if page, _ := lena.Query(ctx, Query{Flagged: true}); page.Total < 1 {
@@ -180,7 +186,7 @@ func TestJMAP(t *testing.T) {
 	if _, err := lena.Move(ctx, []string{got.ID}, snoozed); err != nil {
 		t.Fatal(err)
 	}
-	if page, _ := lena.Query(ctx, Query{MailboxID: snoozed}); page.Total != 1 {
+	if page, _ := lena.Query(ctx, Query{MailboxID: snoozed, Limit: 100}); !has(page, subject) {
 		t.Errorf("snoozed: %+v", page)
 	}
 	if _, err := lena.Move(ctx, []string{got.ID}, lenaBoxes[RoleInbox]); err != nil {
