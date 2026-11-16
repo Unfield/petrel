@@ -35,3 +35,16 @@ Modern webmail on Tern (Svelte 5 + Go). Speaks JMAP, IMAP4rev2, POP3 and SMTP su
   3. Thunderbird autoconfig (domain, then ISPDB)
   4. Common guesses (`imap.<domain>`, `mail.<domain>`)
   Outbound connections guarded: block private/loopback IPs, mail ports only, rate-limited, TLS required by default.
+
+## Built (2026-11-16)
+- Providers: IMAP (IDLE, MOVE/COPYUID, special-use + name heuristics), JMAP (Mailbox, Email, Identity, EmailSubmission), POP3 (flags in Petrel's DB), SMTP submission; one `Provider` interface.
+- Accounts mode only for now; connect flow with autodiscovery at Settings → Mailboxes; credentials sealed.
+- Mail app at /mail ported from the mockup: three layouts, density, presets, accent, light/dark/system via light-dark(), en/de, RTL toggle, ⌘K palette, shortcuts, threads, unified inbox, undo, compose with delayed send + undo, live updates over SSE.
+- Mail HTML: bluemonday + sandboxed iframe with CSP; remote images opt-in per message or per sender.
+
+## Decisions made along the way
+- Appearance prefs in a cookie (not localStorage) so the server renders the right theme: no flash, no inline script under Tern's CSP.
+- Undo send = the browser waits 5 s before posting.
+- Starred = flagged messages across Inbox, Archive and Sent (IMAP) / everything but Trash and Junk (JMAP).
+- No auto-opening the first message: opening marks as read, which should be the reader's choice.
+- `cmd/devmail` instead of Docker for local development.

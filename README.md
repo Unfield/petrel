@@ -2,7 +2,7 @@
 <h1 align="center">Petrel</h1>
 <p align="center">Modern, open-source webmail. JMAP, IMAP, POP3 and SMTP, in one fast inbox you can self-host.</p>
 
-> **Status: early development.** Accounts, sign-in and the app shell work. Connecting mailboxes and the mail view are being built next. The clickable UI prototype lives in [`mockup/`](mockup/).
+> **Status: early, but it reads and sends real mail.** Connect IMAP, JMAP or POP3 mailboxes and use them in a three-pane mail app: threads, search, flags, archive and delete with undo, compose and reply, and live updates. See [what's missing](#not-yet) before you rely on it.
 
 ## Goals
 
@@ -28,11 +28,25 @@ npm run dev        # or: go tool tern dev
 
 Open <http://localhost:5173> and create an account. Without `SMTP_HOST`, account emails (verification, password reset) aren't sent: their links are in the server's log.
 
-To try the UI prototype without the server:
+### A mail server to develop against
+
+`cmd/devmail` is an IMAP and SMTP server in memory, with two mailboxes of sample mail (threads, HTML newsletters with tracking pixels, attachments, inline images, spam). No Docker needed:
 
 ```sh
-python3 -m http.server 4321 --directory mockup
+go run ./cmd/devmail
+PETREL_ALLOW_PRIVATE_HOSTS=true npm run dev
 ```
+
+In Petrel, go to **Settings → Mailboxes** and click **Use the dev mail server**. Sign in as `sam@petrel.test` or `sam.taylor@northwind.test`, password `petrel`. Mail you send to either address arrives in its inbox, and a new message arrives a minute after the server starts, so you can see live updates.
+
+### Tests
+
+```sh
+go test ./...      # includes IMAP + SMTP tests against an in-memory server
+go tool tern check # Svelte and TypeScript
+```
+
+To try the original UI prototype without the server: `python3 -m http.server 4321 --directory mockup`.
 
 ## Build
 
@@ -54,24 +68,54 @@ Petrel reads its settings from the environment, and `tern dev` also from a `.env
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `MAIL_FROM` | how Petrel sends its own account emails |
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OAUTH_SECRET` | sign-in with GitHub or Google (optional) |
 | `TRUSTED_PROXIES` | your reverse proxies' addresses, comma-separated |
+| `PETREL_SECRET_KEY` | at least 32 random characters: encrypts saved mailbox passwords. Without it, Petrel makes `petrel.key` beside the database; back it up with the database |
+| `PETREL_ALLOW_PRIVATE_HOSTS` | `true` lets mailboxes on private addresses and any port connect, for local test servers. Never set it on a public instance |
 | `APP_NAME` | the name shown by authenticator apps and passkey prompts |
 
-## Project layout
+## How it works
+
+- **`internal/mail`** talks to mail servers. JMAP, IMAP and POP3 each implement one `Provider` interface, shaped after JMAP: mailboxes with roles, messages with keywords, paged queries.
+  - **IMAP:** keeps a connection per account and a second one in IDLE for push.
+  - **JMAP:** batches method calls over HTTPS.
+  - **POP3:** keeps seen and starred in Petrel's database, because POP3 has neither.
+  - **Sending:** SMTP submission for IMAP and POP3, `EmailSubmission` for JMAP.
+- **Security:**
+  - Mailbox passwords are encrypted at rest with Tern's `sealed`.
+  - Every connection to a user-given server goes through a guard that refuses private addresses and non-mail ports.
+  - Mail HTML is sanitized, then shown in a sandboxed frame whose Content-Security-Policy blocks scripts and, until you allow them, remote images and tracking pixels.
+- **Live updates:** IMAP IDLE (or polling for JMAP and POP3) publishes changes on Tern's `realtime` hub. The open tabs receive them over server-sent events.
+- **The mail app** is `/mail`: Svelte 5, ported from the approved prototype. Appearance settings live in a cookie, so the page renders in your theme from the first byte, with no flash.
 
 ```
 main.go              plugins: migrations, jobs, accounts, sign-in with other providers
-internal/app/        database, accounts, connected mail accounts
+cmd/devmail/         IMAP + SMTP server in memory, for development
+internal/mail/       protocols: imap.go, jmap.go, pop3.go, smtp.go, discover.go, sanitize.go
+internal/app/        database, accounts, mail accounts, the views the API returns
 migrations/          SQL migrations, applied at start
-src/routes/          pages (Svelte) and their server code (Go)
-  +page.svelte       landing page
+src/routes/
+  mail/              the mail app
+  api/mail/          JSON API: accounts, messages, message, actions, send, attachment, events, discover
+  app.group/         settings: mailboxes, profile, security
   auth.group/        sign in, sign up, two-step code, password reset
-  app.group/         the signed-in app: mail, settings, security
+src/lib/mail/        the mail app's components, store and styles
 src/locales/         translations (en, de)
-src/lib/             shared components and Petrel's theme
 brand/               logo and app icon (SVG)
-mockup/              clickable UI prototype (static HTML)
+mockup/              the clickable UI prototype
 docs/                design notes
 ```
+
+## Not yet
+
+These are planned but not built yet:
+- **Direct sign-in mode:** signing in with your mailbox credentials.
+- **Attachments when composing.**
+- **Drafts on the server.** Closed drafts are kept on the device for now.
+- **OAuth for Gmail and Outlook.** They need app passwords until then.
+- **Contacts and address autocomplete.**
+- **Labels and snooze.**
+- **Push for JMAP.** It polls every 45 seconds instead.
+- **POP3 over STARTTLS.** Use port 995.
+- **Settings saved per user.** They're per browser for now.
 
 ## Contributing
 

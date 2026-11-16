@@ -1,0 +1,216 @@
+// Package mail talks to mail servers. Every protocol (JMAP, IMAP, POP3)
+// implements Provider, a small interface shaped after JMAP's model:
+// mailboxes with roles, messages with keywords, and queries that page.
+// The rest of Petrel only ever sees this interface.
+package mail
+
+import (
+	"context"
+	"errors"
+	"io"
+	"time"
+)
+
+// Protocol is how Petrel reads a mailbox.
+type Protocol string
+
+const (
+	JMAP Protocol = "jmap"
+	IMAP Protocol = "imap"
+	POP3 Protocol = "pop3"
+)
+
+// Security is how a connection to a server is protected.
+type Security string
+
+const (
+	TLS      Security = "tls"      // TLS from the start (993, 995, 465)
+	StartTLS Security = "starttls" // upgraded with STARTTLS (143, 587)
+	Plain    Security = "plain"    // unencrypted: only for local test servers
+)
+
+// Server is a host to connect to.
+type Server struct {
+	Host     string   `json:"host"`
+	Port     int      `json:"port"`
+	Security Security `json:"security"`
+}
+
+// Settings say where a mailbox lives. They are stored as JSON beside the
+// account; the credentials are stored apart, encrypted.
+type Settings struct {
+	Protocol Protocol `json:"protocol"`
+	Username string   `json:"username"`
+	// Incoming is the IMAP or POP3 server.
+	Incoming Server `json:"incoming"`
+	// SMTP sends mail for IMAP and POP3 accounts.
+	SMTP Server `json:"smtp"`
+	// JMAPURL is the JMAP session resource, such as
+	// https://example.com/.well-known/jmap.
+	JMAPURL string `json:"jmapUrl,omitempty"`
+}
+
+// Credentials sign in to the servers.
+type Credentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+// Roles of special mailboxes (RFC 8621 and RFC 6154).
+const (
+	RoleInbox   = "inbox"
+	RoleSent    = "sent"
+	RoleDrafts  = "drafts"
+	RoleTrash   = "trash"
+	RoleJunk    = "junk"
+	RoleArchive = "archive"
+)
+
+// Mailbox is a folder.
+type Mailbox struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Role   string `json:"role,omitempty"`
+	Total  int    `json:"total"`
+	Unread int    `json:"unread"`
+}
+
+// Address is a person or a mailbox.
+type Address struct {
+	Name  string `json:"name,omitempty"`
+	Email string `json:"email"`
+}
+
+// Summary is what the message list shows.
+type Summary struct {
+	ID            string    `json:"id"`
+	MailboxID     string    `json:"mailboxId"`
+	ThreadID      string    `json:"threadId"`
+	MessageID     string    `json:"-"`
+	From          []Address `json:"from"`
+	To            []Address `json:"to"`
+	Cc            []Address `json:"cc"`
+	Subject       string    `json:"subject"`
+	Preview       string    `json:"preview"`
+	Date          time.Time `json:"date"`
+	Seen          bool      `json:"seen"`
+	Flagged       bool      `json:"flagged"`
+	Answered      bool      `json:"answered"`
+	HasAttachment bool      `json:"hasAttachment"`
+}
+
+// Attachment is a file in a message, or an inline image.
+type Attachment struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Type   string `json:"type"`
+	Size   int64  `json:"size"`
+	CID    string `json:"cid,omitempty"`
+	Inline bool   `json:"inline"`
+}
+
+// Message is a whole message, for reading it.
+type Message struct {
+	Summary
+	ReplyTo     []Address    `json:"replyTo"`
+	Bcc         []Address    `json:"bcc"`
+	HTML        string       `json:"-"`
+	Text        string       `json:"-"`
+	Attachments []Attachment `json:"attachments"`
+	InReplyTo   string       `json:"-"`
+	References  []string     `json:"-"`
+}
+
+// Query selects messages. MailboxID "" with Flagged set means flagged
+// messages in every mailbox but trash and junk ("Starred").
+type Query struct {
+	MailboxID     string
+	Search        string
+	Unread        bool
+	Flagged       bool
+	HasAttachment bool
+	Since         time.Time
+	Offset        int
+	Limit         int
+}
+
+// Page is a page of a query's results, newest first.
+type Page struct {
+	Messages []Summary `json:"messages"`
+	Total    int       `json:"total"`
+}
+
+// Outgoing is a message to send.
+type Outgoing struct {
+	From       Address
+	To         []Address
+	Cc         []Address
+	Bcc        []Address
+	Subject    string
+	Text       string
+	HTML       string
+	InReplyTo  string
+	References []string
+}
+
+// Provider reads and changes one mail account.
+type Provider interface {
+	Mailboxes(ctx context.Context) ([]Mailbox, error)
+	Query(ctx context.Context, q Query) (Page, error)
+	Get(ctx context.Context, id string) (*Message, error)
+	Attachment(ctx context.Context, messageID, attachmentID string) (Attachment, io.ReadCloser, error)
+	SetFlags(ctx context.Context, ids []string, seen, flagged *bool) error
+	// Move returns the messages' new IDs where moving changes them (IMAP
+	// gives a message a new UID in each mailbox), by old ID.
+	Move(ctx context.Context, ids []string, mailboxID string) (map[string]string, error)
+	Destroy(ctx context.Context, ids []string) error
+	Send(ctx context.Context, m Outgoing) error
+	// State changes whenever the account's messages change; watchers
+	// compare it to notice new mail on servers without push.
+	State(ctx context.Context) (string, error)
+	Close() error
+}
+
+// Watcher is a Provider that can wait for changes itself (IMAP IDLE).
+type Watcher interface {
+	// Watch calls changed whenever the inbox changes, until ctx is done.
+	Watch(ctx context.Context, changed func()) error
+}
+
+var (
+	// ErrUnsupported is returned for what a protocol can't do, such as
+	// moving messages in POP3.
+	ErrUnsupported = errors.New("mail: not supported by this account's protocol")
+	// ErrNotFound is returned for messages that are gone.
+	ErrNotFound = errors.New("mail: message not found")
+	// ErrAuth is returned when the server refuses the credentials.
+	ErrAuth = errors.New("mail: the server refused the username or password")
+)
+
+// Options configure providers.
+type Options struct {
+	// AllowPrivate lets connections reach private and loopback addresses
+	// and any port: for local test servers only.
+	AllowPrivate bool
+	// Flags keeps seen and flagged for POP3, which has neither.
+	Flags FlagStore
+}
+
+// FlagStore keeps POP3 messages' flags in Petrel's database.
+type FlagStore interface {
+	Flags(ctx context.Context, uidls []string) (map[string][2]bool, error)
+	SetFlags(ctx context.Context, uidls []string, seen, flagged *bool) error
+}
+
+// Open connects nothing yet: providers dial on first use.
+func Open(s Settings, c Credentials, o Options) (Provider, error) {
+	switch s.Protocol {
+	case IMAP:
+		return newIMAP(s, c, o), nil
+	case JMAP:
+		return newJMAP(s, c, o), nil
+	case POP3:
+		return newPOP3(s, c, o), nil
+	}
+	return nil, errors.New("mail: unknown protocol " + string(s.Protocol))
+}

@@ -10,6 +10,7 @@
 		{ items: [{ label: t('nav.mail'), href: '/mail', icon: mailIcon }] },
 		{
 			items: [
+				{ label: t('nav.mailboxes'), href: '/settings/mailboxes', icon: mailIcon },
 				{ label: t('nav.settings'), href: '/settings', icon: settingsIcon },
 				{ label: t('nav.security'), href: '/settings/security', icon: securityIcon }
 			]

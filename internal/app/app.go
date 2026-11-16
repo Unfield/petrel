@@ -42,8 +42,12 @@ var Current *App
 // Open opens the database and sets up accounts, email and sign-in with
 // other providers, from the environment.
 func Open(logger *slog.Logger) (*App, error) {
-	db, err := sql.Open("sqlite", "file:"+env("DATABASE_PATH", "app.db")+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
+	dbPath := env("DATABASE_PATH", "app.db")
+	db, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(1)")
 	if err != nil {
+		return nil, err
+	}
+	if err := setUpKeys(dbPath, logger); err != nil {
 		return nil, err
 	}
 	q, err := jobs.New(db, jobs.Options{Logger: logger})
@@ -61,7 +65,10 @@ func Open(logger *slog.Logger) (*App, error) {
 	if err := acc.Migrate(context.Background()); err != nil {
 		return nil, err
 	}
-	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: &MailAccounts{db: db}}
+	// PETREL_ALLOW_PRIVATE_HOSTS lets mailboxes on private addresses and any
+	// port connect: for local test servers, never on a public instance.
+	allowPrivate := os.Getenv("PETREL_ALLOW_PRIVATE_HOSTS") == "true"
+	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate)}
 	if err := a.setUpOAuth(); err != nil {
 		return nil, err
 	}
