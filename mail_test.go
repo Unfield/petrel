@@ -246,6 +246,9 @@ func TestDirectSignIn(t *testing.T) {
 	if page := c.Get("/signup"); page.Status/100 != 3 {
 		t.Errorf("sign-up is open in direct mode: %d", page.Status)
 	}
+	if page := c.Get("/"); page.Status/100 != 3 || page.Location() != "/login" {
+		t.Errorf("home in direct mode: %d %s", page.Status, page.Location())
+	}
 	if page := c.PostForm("/login?/mailbox", url.Values{"email": {"ada@example.test"}, "password": {"wrong"}}); page.Status != 400 {
 		t.Errorf("a wrong password: %d", page.Status)
 	}
@@ -254,6 +257,9 @@ func TestDirectSignIn(t *testing.T) {
 	}
 	if page := c.PostForm("/login?/mailbox", url.Values{"email": {"ada@example.test"}, "password": {"secret"}}); page.Status != 303 {
 		t.Fatalf("sign-in: %d %s", page.Status, page.Body)
+	}
+	if page := c.Get("/"); page.Status/100 != 3 || page.Location() != "/mail" {
+		t.Errorf("home when signed in: %d %s", page.Status, page.Location())
 	}
 	var accounts []app.AccountView
 	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
