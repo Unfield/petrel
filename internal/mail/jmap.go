@@ -46,7 +46,11 @@ const (
 )
 
 func newJMAP(s Settings, c Credentials, o Options) *jmapProvider {
-	return &jmapProvider{s: s, c: c, o: o, http: httpClient(o.AllowPrivate, 60*time.Second)}
+	h := httpClient(o.AllowPrivate, 60*time.Second)
+	if o.Transport != nil {
+		h.Transport = o.Transport
+	}
+	return &jmapProvider{s: s, c: c, o: o, http: h}
 }
 
 func (p *jmapProvider) auth(req *http.Request) error {
@@ -95,11 +99,13 @@ func (p *jmapProvider) getSession(ctx context.Context) (*jmapSession, error) {
 	if s.account == "" || s.APIURL == "" {
 		return nil, errors.New("mail: this JMAP server offers no mail account")
 	}
-	// Relative URLs are resolved against the session's address.
+	// Relative URLs are resolved against the session's address. They're
+	// templates ({accountId}, {blobId}…), so they're joined as text: url.URL
+	// would percent-encode the braces and the placeholders would stay.
 	base, _ := url.Parse(p.s.JMAPURL)
 	for _, u := range []*string{&s.APIURL, &s.DownloadURL, &s.UploadURL, &s.EventSourceURL} {
-		if r, err := url.Parse(*u); err == nil && *u != "" {
-			*u = base.ResolveReference(r).String()
+		if strings.HasPrefix(*u, "/") {
+			*u = base.Scheme + "://" + base.Host + *u
 		}
 	}
 	p.session = &s

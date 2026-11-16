@@ -34,23 +34,33 @@ func newPOP3(s Settings, c Credentials, o Options) *pop3Provider {
 const pop3Inbox = "INBOX"
 
 type guardedDialer struct {
-	ctx          context.Context
-	allowPrivate bool
-	startTLS     bool
-	host         string
+	ctx      context.Context
+	o        Options
+	security Security
+	host     string
 }
 
 func (d guardedDialer) Dial(network, address string) (net.Conn, error) {
-	conn, err := dialer(d.allowPrivate).DialContext(d.ctx, network, address)
-	if err != nil || !d.startTLS {
-		return conn, err
+	conn, err := dialer(d.o.AllowPrivate).DialContext(d.ctx, network, address)
+	switch {
+	case err != nil:
+		return nil, err
+	case d.security == TLS:
+		tc := tls.Client(conn, tlsConfig(d.host, d.o))
+		if err := tc.HandshakeContext(d.ctx); err != nil {
+			conn.Close()
+			return nil, err
+		}
+		return tc, nil
+	case d.security == StartTLS:
+		return stls(conn, d.host, d.o)
 	}
-	return stls(conn, d.host)
+	return conn, nil
 }
 
 // stls upgrades a POP3 connection with STLS (RFC 2595), then replays a
 // greeting so go-pop3, which reads one first, carries on as usual.
-func stls(conn net.Conn, host string) (net.Conn, error) {
+func stls(conn net.Conn, host string, o Options) (net.Conn, error) {
 	_ = conn.SetDeadline(time.Now().Add(20 * time.Second))
 	r := bufio.NewReader(conn)
 	line := func() (string, error) {
@@ -72,7 +82,7 @@ func stls(conn net.Conn, host string) (net.Conn, error) {
 		conn.Close()
 		return nil, fmt.Errorf("mail: this POP3 server doesn't offer STARTTLS: %w", err)
 	}
-	tc := tls.Client(conn, tlsConfig(host))
+	tc := tls.Client(conn, tlsConfig(host, o))
 	if err := tc.Handshake(); err != nil {
 		conn.Close()
 		return nil, err
@@ -102,9 +112,9 @@ func (p *pop3Provider) session(ctx context.Context, fn func(c *pop3.Conn) error)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	client := pop3.New(pop3.Opt{
-		Host: p.s.Incoming.Host, Port: p.s.Incoming.Port, TLSEnabled: p.s.Incoming.Security == TLS,
+		Host: p.s.Incoming.Host, Port: p.s.Incoming.Port,
 		DialTimeout: 15 * time.Second,
-		Dialer:      guardedDialer{ctx: ctx, allowPrivate: p.o.AllowPrivate, startTLS: p.s.Incoming.Security == StartTLS, host: p.s.Incoming.Host},
+		Dialer:      guardedDialer{ctx: ctx, o: p.o, security: p.s.Incoming.Security, host: p.s.Incoming.Host},
 	})
 	conn, err := client.NewConn()
 	if err != nil {

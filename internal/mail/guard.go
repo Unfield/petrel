@@ -56,18 +56,25 @@ func isShared(ip netip.Addr) bool {
 
 func addr(s Server) string { return net.JoinHostPort(s.Host, strconv.Itoa(s.Port)) }
 
-func tlsConfig(host string) *tls.Config {
+func tlsConfig(host string, o ...Options) *tls.Config {
+	if len(o) > 0 && o[0].TLS != nil {
+		c := o[0].TLS.Clone()
+		if c.ServerName == "" {
+			c.ServerName = host
+		}
+		return c
+	}
 	return &tls.Config{ServerName: host, MinVersion: tls.VersionTLS12}
 }
 
 // dial connects to a server as its Security says.
-func dial(ctx context.Context, s Server, allowPrivate bool) (net.Conn, error) {
+func dial(ctx context.Context, s Server, allowPrivate bool, o ...Options) (net.Conn, error) {
 	if s.Security == Plain && !allowPrivate {
 		return nil, fmt.Errorf("mail: unencrypted connections are only allowed for local test servers")
 	}
 	d := dialer(allowPrivate)
 	if s.Security == TLS {
-		td := &tls.Dialer{NetDialer: d, Config: tlsConfig(s.Host)}
+		td := &tls.Dialer{NetDialer: d, Config: tlsConfig(s.Host, o...)}
 		return td.DialContext(ctx, "tcp", addr(s))
 	}
 	return d.DialContext(ctx, "tcp", addr(s))

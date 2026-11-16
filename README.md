@@ -42,9 +42,21 @@ In Petrel, go to **Settings → Mailboxes** and click **Use the dev mail server*
 ### Tests
 
 ```sh
-go test ./...      # includes IMAP + SMTP tests against an in-memory server
+go test ./...      # IMAP, POP3, SMTP and the whole API against in-memory servers
 go tool tern check # Svelte and TypeScript
 ```
+
+To also test JMAP, and IMAP, POP3 and SMTP over TLS, against a real mail server, start [Stalwart](https://stalw.art) in Docker and point the tests at it:
+
+```sh
+./scripts/stalwart-test.sh
+PETREL_JMAP_URL=http://127.0.0.1:8080/.well-known/jmap \
+PETREL_JMAP_USER1=sam@petrel.test PETREL_JMAP_USER2=lena@petrel.test PETREL_JMAP_PASSWORD=petrel-jmap-test \
+PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_SMTP=127.0.0.1:2465 PETREL_REAL_POP3=127.0.0.1:2995 \
+go test ./internal/mail -run 'JMAP|RealServers' -v
+```
+
+Remove the server afterwards with `docker rm -f petrel-stalwart`.
 
 To try the original UI prototype without the server: `python3 -m http.server 4321 --directory mockup`.
 
@@ -152,7 +164,6 @@ Register an OAuth app with Google or Microsoft and set `PETREL_GOOGLE_CLIENT_ID`
 
 ## Known gaps
 
-- **JMAP:** built to RFC 8620/8621 but only tested by its types so far. IMAP, POP3 and SMTP have integration tests against real servers in memory.
 - **Contacts:** there's no address book yet beyond suggestions learned from your mail.
 
 ## Contributing

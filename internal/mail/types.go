@@ -6,8 +6,10 @@ package mail
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
+	"net/http"
 	"time"
 )
 
@@ -226,6 +228,12 @@ type Options struct {
 	Flags FlagStore
 	// Refresh renews an expired OAuth token in place and saves it.
 	Refresh func(ctx context.Context, o *OAuth) error
+	// Transport replaces how JMAP requests are made: for tests that reach
+	// a server under another address than the one it announces.
+	Transport http.RoundTripper
+	// TLS, if set, is the base TLS configuration (for tests that trust a
+	// test server's own certificate). The server name is still checked.
+	TLS *tls.Config
 }
 
 // token returns a current OAuth access token, renewing it first if it

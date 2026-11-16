@@ -36,14 +36,14 @@ func newIMAP(s Settings, c Credentials, o Options) *imapProvider {
 }
 
 func (p *imapProvider) dialLogin(ctx context.Context, opts *imapclient.Options) (*imapclient.Client, error) {
-	conn, err := dial(ctx, p.s.Incoming, p.o.AllowPrivate)
+	conn, err := dial(ctx, p.s.Incoming, p.o.AllowPrivate, p.o)
 	if err != nil {
 		return nil, fmt.Errorf("mail: connecting to %s: %w", p.s.Incoming.Host, err)
 	}
 	if opts == nil {
 		opts = &imapclient.Options{}
 	}
-	opts.TLSConfig = tlsConfig(p.s.Incoming.Host)
+	opts.TLSConfig = tlsConfig(p.s.Incoming.Host, p.o)
 	var cl *imapclient.Client
 	if p.s.Incoming.Security == StartTLS {
 		if cl, err = imapclient.NewStartTLS(conn, opts); err != nil {

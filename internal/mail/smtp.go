@@ -20,14 +20,14 @@ func sendSMTP(ctx context.Context, s Server, c *Credentials, o Options, m Outgoi
 	if err != nil {
 		return nil, err
 	}
-	conn, err := dial(ctx, s, allowPrivate)
+	conn, err := dial(ctx, s, allowPrivate, o)
 	if err != nil {
 		return nil, fmt.Errorf("mail: connecting to %s: %w", s.Host, err)
 	}
 	_ = conn.SetDeadline(time.Now().Add(2 * time.Minute))
 	var client *smtp.Client
 	if s.Security == StartTLS {
-		client, err = smtp.NewClientStartTLS(conn, tlsConfig(s.Host))
+		client, err = smtp.NewClientStartTLS(conn, tlsConfig(s.Host, o))
 		if err != nil {
 			conn.Close()
 			return nil, err
