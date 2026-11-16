@@ -1,0 +1,33 @@
+{
+	"nav": { "mail": "E-Mail", "settings": "Einstellungen", "security": "Sicherheit", "signOut": "Abmelden", "language": "Sprache" },
+	"home": {
+		"tagline": "Moderne Open-Source-Webmail",
+		"lead": "Petrel spricht JMAP, IMAP und POP3. Schnell, standardmäßig privat, für die Tastatur gemacht und als einzelne Datei selbst hostbar.",
+		"signIn": "Anmelden",
+		"getStarted": "Loslegen",
+		"openMail": "Zu deinen E-Mails",
+		"source": "Quellcode ansehen",
+		"f1Title": "Jedes Protokoll",
+		"f1": "JMAP für Tempo, IMAP und POP3 für alles andere, SMTP zum Senden. Ein Posteingang für alles.",
+		"f2Title": "Standardmäßig privat",
+		"f2": "Externe Bilder und Tracker bleiben blockiert, bis du sie erlaubst. Zugangsdaten werden verschlüsselt gespeichert.",
+		"f3Title": "Für die Tastatur gemacht",
+		"f3": "Tastenkürzel wie bei Gmail, eine Befehlspalette und sofortige Aktionen mit Rückgängig.",
+		"f4Title": "Dein eigener Server",
+		"f4": "Eine Go-Datei mit SQLite daneben. Helles und dunkles Design, Dichte-Einstellungen, Englisch und Deutsch.",
+		"footer": "Open Source unter der MIT-Lizenz. Gebaut mit {tern}."
+	},
+	"mail": {
+		"title": "E-Mail",
+		"emptyTitle": "Hier wohnt dein Posteingang",
+		"emptyBody": "Verbinde ein Postfach, um loszulegen. Petrel funktioniert mit jedem Anbieter, der JMAP, IMAP oder POP3 anbietet.",
+		"connect": "Postfach verbinden",
+		"soon": "Das Verbinden von Postfächern kommt als Nächstes."
+	},
+	"verify": {
+		"title": "Bestätige deine E-Mail-Adresse",
+		"body": "Wir haben dir einen Link geschickt. Nicht angekommen?",
+		"resend": "Erneut senden",
+		"sent": "Gesendet: Schau in dein Postfach."
+	}
+}

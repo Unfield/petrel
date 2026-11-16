@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petrel — logo concepts</title>
+<style>
+  :root { --accent: #3b6cf6; --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 var(--font); background: #eef1f5; color: #151a23; -webkit-font-smoothing: antialiased; }
+  header { padding: 32px 40px 8px; display: flex; align-items: end; gap: 24px; flex-wrap: wrap; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
+  header p { margin: 4px 0 0; color: #5b6475; }
+  .accents { margin-inline-start: auto; display: flex; gap: 8px; align-items: center; color: #5b6475; font-size: 13px; }
+  .accents button { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; background: var(--c); box-shadow: inset 0 0 0 1px rgb(0 0 0/.1); }
+  .accents button.on { box-shadow: 0 0 0 2px #eef1f5, 0 0 0 4px var(--c); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 20px; padding: 24px 40px 48px; }
+  .card { background: #fff; border: 1px solid #e2e6ed; border-radius: 20px; overflow: hidden; }
+  .card h2 { margin: 0; font-size: 17px; letter-spacing: -.01em; display: flex; align-items: center; gap: 10px; }
+  .card h2 span { font-size: 11px; font-weight: 700; color: #7d8798; background: #f1f3f7; padding: 2px 8px; border-radius: 999px; letter-spacing: .04em; }
+  .card .desc { color: #5b6475; margin: 4px 0 0; font-size: 13.5px; }
+  .meta { padding: 18px 22px 20px; }
+  .stage { display: grid; grid-template-columns: 1fr 1fr; }
+  .stage > div { height: 170px; display: grid; place-items: center; }
+  .light { background: #f7f8fa; }
+  .dark { background: #12161c; }
+  .row { display: flex; align-items: center; gap: 22px; padding: 18px 22px; border-top: 1px solid #eef0f4; flex-wrap: wrap; }
+  .appicon { width: 64px; height: 64px; border-radius: 16px; background: var(--accent); display: grid; place-items: center; box-shadow: 0 6px 18px color-mix(in oklab, var(--accent) 35%, transparent); }
+  .sizes { display: flex; align-items: end; gap: 14px; }
+  .lockup { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 22px; letter-spacing: -.025em; }
+  .tab { display: flex; align-items: center; gap: 8px; background: #e8ebf0; border-radius: 9px 9px 0 0; padding: 7px 14px; font-size: 12.5px; color: #333; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Petrel — logo concepts</h1><p>Petrels are seabirds that glide low over the waves, so all four marks build on flight and mail.</p></div>
+  <div class="accents" id="accents">Accent</div>
+</header>
+<div class="grid" id="grid"></div>
+<script>
+// Each mark is drawn on a 64×64 grid. fg = mark color.
+const MARKS = [
+  { id: 'A', name: 'Glide', desc: 'A petrel head-on in a glide, skimming a wave. Calm and simple, and still readable at 16px.',
+    svg: (fg) => `<path d="M6 31c8.5-7.5 17.5-7 26 3.5C40.5 24 49.5 23.5 58 31c-8.6-2.4-17 .8-26 10.8C23 31.8 14.6 28.6 6 31z" fill="${fg}"/>
+      <path d="M14 50c3-2.6 6-2.6 9 0s6 2.6 9 0 6-2.6 9 0 6 2.6 9 0" fill="none" stroke="${fg}" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>` },
+  { id: 'B', name: 'Wing Mail', desc: 'An envelope with a wing rising from it, so you read it as mail first. The most obvious fit for a mail app.',
+    svg: (fg) => `<rect x="9" y="25" width="40" height="28" rx="6" fill="none" stroke="${fg}" stroke-width="4.2"/>
+      <path d="M11 28l18 12.5L47 28" fill="none" stroke="${fg}" stroke-width="4.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M33 23C36 14 44 8 58 6c-3 4-6 6-9 7 3 0 5 0 7-1-4 5-9 8-15 9.5 2 .5 4 .5 6 0-4 2.5-9 3.5-14 1.5z" fill="${fg}"/>` },
+  { id: 'C', name: 'Skimmer', desc: 'The bird in side view, wing raised, gliding low over the water. The most dynamic and story-driven option.',
+    svg: (fg) => `<path d="M58 33l-7-2.5c-4-1.5-8-.5-11 1.5L27 11c2 10 4 17 4 23-7 1-15 2-23 6 9 1 18 1 26 0 8-1 15-3 18-5z" fill="${fg}"/>
+      <path d="M8 52h48" stroke="${fg}" stroke-width="3.6" stroke-linecap="round" opacity=".55"/>` },
+  { id: 'D', name: 'P-Wing', desc: 'A monogram: the letter P, with its bowl sweeping out into a wing tip. Brand-like and works well as an app icon.',
+    svg: (fg) => `<path d="M21 54V20.5h13.5a10.5 10.5 0 0 1 0 21H21" fill="none" stroke="${fg}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path transform="translate(3 -2.5)" d="M33 23C36 14 44 8 58 6c-3 4-6 6-9 7 3 0 5 0 7-1-4 5-9 8-15 9.5 2 .5 4 .5 6 0-4 2.5-9 3.5-14 1.5z" fill="${fg}"/>` },
+];
+const ACCENTS = ['#3b6cf6', '#7c5cff', '#0f9d8f', '#e8590c', '#e64980', '#151a23'];
+let accent = ACCENTS[0];
+const mark = (m, fg, size) => `<svg width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true">${m.svg(fg)}</svg>`;
+function render() {
+  document.documentElement.style.setProperty('--accent', accent);
+  document.getElementById('accents').innerHTML = 'Accent ' + ACCENTS.map((c) => `<button style="--c:${c}" class="${c === accent ? 'on' : ''}" onclick="accent='${c}';render()"></button>`).join('');
+  document.getElementById('grid').innerHTML = MARKS.map((m) => `
+    <section class="card">
+      <div class="stage"><div class="light">${mark(m, accent, 104)}</div><div class="dark">${mark(m, '#fff', 104)}</div></div>
+      <div class="meta"><h2><span>${m.id}</span>${m.name}</h2><p class="desc">${m.desc}</p></div>
+      <div class="row">
+        <div class="appicon">${mark(m, '#fff', 44)}</div>
+        <div class="sizes">${[16, 24, 32].map((s) => mark(m, '#151a23', s)).join('')}</div>
+        <div class="tab">${mark(m, accent, 16)} Inbox (3) — Petrel</div>
+      </div>
+      <div class="row"><div class="lockup">${mark(m, accent, 34)}Petrel</div></div>
+    </section>`).join('');
+}
+render();
+</script>
+</body>
+</html>

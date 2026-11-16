@@ -1,0 +1,69 @@
+package main
+
+import (
+	"log"
+	"log/slog"
+	"os"
+	"strings"
+
+	"github.com/Unfield/Tern/kit"
+	"github.com/Unfield/Tern/logging"
+	"github.com/Unfield/Tern/migrate"
+	"github.com/Unfield/Tern/plugins/compress"
+	"github.com/Unfield/Tern/plugins/health"
+	"github.com/Unfield/Tern/plugins/requestlog"
+	"github.com/Unfield/Tern/plugins/secure"
+
+	"petrel/internal/app"
+	"petrel/migrations"
+)
+
+func main() {
+	// TERN_LOG_LEVEL and TERN_LOG_FORMAT set the level and format. Add
+	// sinks, such as logging/otlp, to send the logs to a collector.
+	logger := logging.New(logging.Options{})
+	slog.SetDefault(logger)
+	server, err := newServer(logger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := server.ListenAndServe(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// newServer opens the app and assembles the server: main runs it, and the
+// tests in main_test.go call it too.
+func newServer(logger *slog.Logger) (*kit.App, error) {
+	// Open reads the settings from the environment: see .env.example.
+	a, err := app.Open(logger)
+	if err != nil {
+		return nil, err
+	}
+	var proxies []string
+	if p := os.Getenv("TRUSTED_PROXIES"); p != "" {
+		proxies = strings.Split(p, ",")
+	}
+	plugins := []kit.Plugin{
+		migrate.Plugin(a.DB, migrations.FS),
+		a.Jobs,
+		a.Accounts,
+		health.New(health.Check("database", a.DB.PingContext)),
+		requestlog.New(requestlog.SkipAssets()),
+		compress.New(),
+		secure.New(),
+	}
+	if a.OAuth != nil {
+		plugins = append(plugins, a.OAuth)
+	}
+	return ternApp(
+		kit.WithLogger(logger),
+		// Behind a reverse proxy, set TRUSTED_PROXIES so rate limits and
+		// the devices list see visitors' own addresses.
+		kit.WithTrustedProxies(proxies...),
+		kit.WithPlugins(plugins...),
+		// Routes with `var Access = kit.SignedIn` send signed-out visitors to
+		// the sign-in page.
+		a.Accounts.Guard(),
+	)
+}

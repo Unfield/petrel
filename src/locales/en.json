@@ -1,0 +1,33 @@
+{
+	"nav": { "mail": "Mail", "settings": "Settings", "security": "Security", "signOut": "Sign out", "language": "Language" },
+	"home": {
+		"tagline": "Modern, open-source webmail",
+		"lead": "Petrel speaks JMAP, IMAP and POP3. It’s fast, private by default, made for the keyboard, and yours to self-host as a single binary.",
+		"signIn": "Sign in",
+		"getStarted": "Get started",
+		"openMail": "Open your mail",
+		"source": "View the source",
+		"f1Title": "Every protocol",
+		"f1": "JMAP for speed, IMAP and POP3 for everything else, SMTP for sending. One inbox for all of them.",
+		"f2Title": "Private by default",
+		"f2": "Remote images and trackers are blocked until you say so. Credentials are encrypted at rest.",
+		"f3Title": "Made for the keyboard",
+		"f3": "Gmail-style shortcuts, a command palette, and instant actions with undo.",
+		"f4Title": "Yours to run",
+		"f4": "One Go binary with SQLite next to it. Light and dark themes, density settings, English and German.",
+		"footer": "Open source under the MIT license. Built with {tern}."
+	},
+	"mail": {
+		"title": "Mail",
+		"emptyTitle": "Your inbox lives here",
+		"emptyBody": "Connect a mailbox to get started. Petrel works with any provider that offers JMAP, IMAP or POP3.",
+		"connect": "Connect a mailbox",
+		"soon": "Connecting mailboxes is coming next."
+	},
+	"verify": {
+		"title": "Confirm your email address",
+		"body": "We sent you a link. Didn’t get it?",
+		"resend": "Send it again",
+		"sent": "Sent: check your inbox."
+	}
+}

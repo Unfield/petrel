@@ -1,0 +1,36 @@
+// Package shell holds the pages for signed-in users. The app.group
+// directory gives them one layout, with the sidebar, without adding to
+// their URLs.
+package shell
+
+import (
+	"github.com/Unfield/Tern/accounts"
+	"github.com/Unfield/Tern/kit"
+
+	"petrel/internal/app"
+)
+
+// Access keeps these pages, and every directory below, to signed-in users:
+// signed out, they go to the sign-in page.
+var Access = kit.SignedIn
+
+type Shell struct {
+	User  accounts.User         `json:"user"`
+	Team  accounts.Membership   `json:"team"`
+	Teams []accounts.Membership `json:"teams"`
+}
+
+// LayoutLoad sends signed-out visitors to sign in, and back here after,
+// and users without a team to make one.
+func LayoutLoad(ctx *kit.Ctx) (Shell, error) {
+	acc := app.Current.Accounts
+	m, err := acc.RequireTeam(ctx)
+	if err != nil {
+		return Shell{}, err
+	}
+	teams, err := acc.Teams(ctx)
+	if err != nil {
+		return Shell{}, err
+	}
+	return Shell{User: *accounts.Current(ctx), Team: *m, Teams: teams}, nil
+}

@@ -1,0 +1,20 @@
+{
+	"name": "petrel",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "go tool tern dev",
+		"build": "go tool tern build",
+		"check": "go tool tern check",
+		"test": "go tool tern build && go test ./...",
+		"test:e2e": "playwright test"
+	},
+	"devDependencies": {
+		"@playwright/test": "^1.65.0",
+		"@ternkit/tern": "^1.17.0",
+		"svelte": "^5.57.3",
+		"svelte-check": "^4.7.8",
+		"typescript": "^6.0.0",
+		"vite": "^8.3.7"
+	}
+}

@@ -1,0 +1,54 @@
+package signup
+
+import (
+	"net/http"
+	"strings"
+
+	"github.com/Unfield/Tern/accounts"
+	"github.com/Unfield/Tern/kit"
+
+	"petrel/internal/app"
+)
+
+// Access lets anyone in: this is how people sign in.
+var Access = kit.Public
+
+type Page struct {
+	Next      string         `json:"next"`
+	Providers []app.Provider `json:"providers"`
+}
+
+func Load(ctx *kit.Ctx) (Page, error) {
+	if accounts.Current(ctx) != nil {
+		return Page{}, kit.Redirect(http.StatusSeeOther, app.SafeNext(ctx.URL().Query().Get("next")))
+	}
+	return Page{Next: app.SafeNext(ctx.URL().Query().Get("next")), Providers: app.Current.Providers}, nil
+}
+
+type Account struct {
+	Name     string `form:"name" validate:"required,max=80"`
+	Email    string `form:"email" validate:"required,email,max=254"`
+	Password string `form:"password" validate:"required,min=10,max=200"`
+}
+
+var Actions = kit.Actions{
+	"default": kit.FormAction(func(ctx *kit.Ctx, in Account) (struct{}, error) {
+		acc := app.Current.Accounts
+		if _, err := acc.SignUp(ctx, in.Email, in.Name, in.Password); err != nil {
+			return struct{}{}, accounts.FormError(ctx, err)
+		}
+		// Everyone starts with a team of their own, to rename or invite to.
+		if _, err := acc.CreateTeam(ctx, strings.TrimSpace(in.Name)+"’s team"); err != nil {
+			return struct{}{}, err
+		}
+		next := app.SafeNext(ctx.URL().Query().Get("next"))
+		// Someone invited confirms their address by accepting.
+		if strings.HasPrefix(next, "/invitation?") {
+			return struct{}{}, kit.Redirect(http.StatusSeeOther, next)
+		}
+		if err := acc.SendVerification(ctx); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, kit.Redirect(http.StatusSeeOther, next)
+	}),
+}

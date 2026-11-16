@@ -1,0 +1,35 @@
+package switchteam
+
+import (
+	"net/http"
+
+	"github.com/Unfield/Tern/accounts"
+	"github.com/Unfield/Tern/kit"
+
+	"petrel/internal/app"
+)
+
+// Access: switching teams needs an account.
+var Access = kit.SignedIn
+
+// Load: the switcher posts here; a visit goes to the dashboard.
+func Load(ctx *kit.Ctx) (struct{}, error) {
+	return struct{}{}, kit.Redirect(http.StatusSeeOther, "/mail")
+}
+
+type Choice struct {
+	ID int64 `form:"id" validate:"required"`
+}
+
+var Actions = kit.Actions{
+	// default makes another of the user's teams the current one.
+	"default": kit.FormAction(func(ctx *kit.Ctx, in Choice) (struct{}, error) {
+		if _, err := app.Current.Accounts.Require(ctx); err != nil {
+			return struct{}{}, err
+		}
+		if err := app.Current.Accounts.SwitchTeam(ctx, in.ID); err != nil {
+			return struct{}{}, accounts.FormError(ctx, err)
+		}
+		return struct{}{}, kit.Redirect(http.StatusSeeOther, "/mail")
+	}),
+}

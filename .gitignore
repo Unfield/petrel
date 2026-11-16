@@ -1,0 +1,16 @@
+node_modules/
+/build/
+.tern/
+tern.gen.go
+tern_native.gen.go
+.env
+.env.*
+!.env.example
+.DS_Store
+test-results/
+playwright-report/
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal

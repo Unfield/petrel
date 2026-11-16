@@ -1,0 +1,75 @@
+package settings
+
+import (
+	"net/http"
+
+	"github.com/Unfield/Tern/accounts"
+	"github.com/Unfield/Tern/kit"
+
+	"petrel/internal/app"
+)
+
+type Page struct {
+	User accounts.User `json:"user"`
+}
+
+func Load(ctx *kit.Ctx) (Page, error) {
+	u, err := app.Current.Accounts.Require(ctx)
+	if err != nil {
+		return Page{}, err
+	}
+	return Page{User: *u}, nil
+}
+
+type Name struct {
+	Name string `form:"name" validate:"required,max=80"`
+}
+
+type Email struct {
+	Email string `form:"email" validate:"required,email,max=254" label:"New email address"`
+}
+
+type Password struct {
+	Current  string `form:"current" label:"Current password"`
+	Password string `form:"password" validate:"required,min=10,max=200" label:"New password"`
+}
+
+type Done struct {
+	Done string `json:"done"`
+}
+
+// do runs fn for the signed-in user, with the errors users cause, such as
+// a wrong password, as form errors.
+func do(ctx *kit.Ctx, done string, fn func() error) (Done, error) {
+	if _, err := app.Current.Accounts.Require(ctx); err != nil {
+		return Done{}, err
+	}
+	if err := fn(); err != nil {
+		return Done{}, accounts.FormError(ctx, err)
+	}
+	return Done{Done: done}, nil
+}
+
+var Actions = kit.Actions{
+	"name": kit.FormAction(func(ctx *kit.Ctx, in Name) (Done, error) {
+		return do(ctx, "name", func() error { return app.Current.Accounts.SetName(ctx, in.Name) })
+	}),
+	"email": kit.FormAction(func(ctx *kit.Ctx, in Email) (Done, error) {
+		return do(ctx, "email", func() error { return app.Current.Accounts.RequestEmailChange(ctx, in.Email) })
+	}),
+	"verify": func(ctx *kit.Ctx) (any, error) {
+		return do(ctx, "verify", func() error { return app.Current.Accounts.SendVerification(ctx) })
+	},
+	"password": kit.FormAction(func(ctx *kit.Ctx, in Password) (Done, error) {
+		return do(ctx, "password", func() error { return app.Current.Accounts.ChangePassword(ctx, in.Current, in.Password) })
+	}),
+	// delete deletes the account, and the teams only this user is in, with
+	// their projects (Options.OnDeleteTeam). A team they own with others in
+	// it needs another owner first.
+	"delete": kit.FormAction(func(ctx *kit.Ctx, _ struct{}) (Done, error) {
+		if _, err := do(ctx, "deleted", func() error { return app.Current.Accounts.DeleteAccount(ctx) }); err != nil {
+			return Done{}, err
+		}
+		return Done{}, kit.Redirect(http.StatusSeeOther, "/")
+	}),
+}
