@@ -50,10 +50,20 @@ type Settings struct {
 	JMAPURL string `json:"jmapUrl,omitempty"`
 }
 
-// Credentials sign in to the servers.
+// Credentials sign in to the servers: a password, or an OAuth token for
+// providers that require one (Gmail, Outlook).
 type Credentials struct {
 	Username string `json:"username"`
-	Password string `json:"password"`
+	Password string `json:"password,omitempty"`
+	OAuth    *OAuth `json:"oauth,omitempty"`
+}
+
+// OAuth is an access token and what renews it.
+type OAuth struct {
+	Provider     string    `json:"provider"`
+	AccessToken  string    `json:"accessToken"`
+	RefreshToken string    `json:"refreshToken"`
+	Expiry       time.Time `json:"expiry"`
 }
 
 // Roles of special mailboxes (RFC 8621 and RFC 6154).
@@ -97,6 +107,9 @@ type Summary struct {
 	Flagged       bool      `json:"flagged"`
 	Answered      bool      `json:"answered"`
 	HasAttachment bool      `json:"hasAttachment"`
+	// Keywords are the message's labels: IMAP keywords, JMAP keywords
+	// that aren't system ones ($seen, $flagged…).
+	Keywords []string `json:"keywords"`
 }
 
 // Attachment is a file in a message, or an inline image.
@@ -129,6 +142,7 @@ type Query struct {
 	Unread        bool
 	Flagged       bool
 	HasAttachment bool
+	Keyword       string
 	Since         time.Time
 	Offset        int
 	Limit         int
@@ -149,8 +163,16 @@ type Outgoing struct {
 	Subject    string
 	Text       string
 	HTML       string
-	InReplyTo  string
-	References []string
+	InReplyTo   string
+	References  []string
+	Attachments []File
+}
+
+// File is an attachment to send.
+type File struct {
+	Name string
+	Type string
+	Data []byte
 }
 
 // Provider reads and changes one mail account.
@@ -165,6 +187,14 @@ type Provider interface {
 	Move(ctx context.Context, ids []string, mailboxID string) (map[string]string, error)
 	Destroy(ctx context.Context, ids []string) error
 	Send(ctx context.Context, m Outgoing) error
+	// SaveDraft files a draft in the Drafts mailbox, replacing the draft
+	// with ID replace if given, and returns the new draft's ID.
+	SaveDraft(ctx context.Context, m Outgoing, replace string) (string, error)
+	// SetKeywords adds and removes labels.
+	SetKeywords(ctx context.Context, ids []string, add, remove []string) error
+	// EnsureMailbox returns the ID of a mailbox with this name, creating it
+	// if needed (such as "Snoozed").
+	EnsureMailbox(ctx context.Context, name string) (string, error)
 	// State changes whenever the account's messages change; watchers
 	// compare it to notice new mail on servers without push.
 	State(ctx context.Context) (string, error)
@@ -194,6 +224,22 @@ type Options struct {
 	AllowPrivate bool
 	// Flags keeps seen and flagged for POP3, which has neither.
 	Flags FlagStore
+	// Refresh renews an expired OAuth token in place and saves it.
+	Refresh func(ctx context.Context, o *OAuth) error
+}
+
+// token returns a current OAuth access token, renewing it first if it
+// expires within a minute.
+func token(ctx context.Context, c *Credentials, o Options) (string, error) {
+	if c.OAuth == nil {
+		return "", nil
+	}
+	if time.Until(c.OAuth.Expiry) < time.Minute && o.Refresh != nil {
+		if err := o.Refresh(ctx, c.OAuth); err != nil {
+			return "", ErrAuth
+		}
+	}
+	return c.OAuth.AccessToken, nil
 }
 
 // FlagStore keeps POP3 messages' flags in Petrel's database.

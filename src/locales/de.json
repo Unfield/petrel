@@ -95,7 +95,15 @@
 			"mailboxes": "Postfächer verwalten",
 			"download": "Herunterladen",
 			"signOut": "Abmelden",
-			"account": "Kontoeinstellungen"
+			"account": "Kontoeinstellungen",
+			"label": "Labels",
+			"snooze": "Zurückstellen",
+			"newLabel": "Neues Label…",
+			"later": "Später heute",
+			"tomorrow": "Morgen",
+			"weekend": "Dieses Wochenende",
+			"nextWeek": "Nächste Woche",
+			"pick": "Datum & Uhrzeit wählen"
 		},
 		"t": {
 			"archived": "{n, plural, one {Konversation archiviert} other {# Konversationen archiviert}}",
@@ -112,7 +120,11 @@
 			"upToDate": "Alles aktuell",
 			"error": "Etwas ist schiefgelaufen: {x}",
 			"needTo": "Mindestens einen Empfänger angeben",
-			"attachSoon": "Anhänge kommen bald"
+			"attachSoon": "Anhänge kommen bald",
+			"snoozed": "{n, plural, one {Zurückgestellt bis {when}} other {# zurückgestellt bis {when}}}",
+			"draftSaved": "Entwurf gespeichert",
+			"uploadFailed": "{x} konnte nicht angehängt werden: {y}",
+			"tooBig": "{x} ist größer als 25 MB"
 		},
 		"undo": "Rückgängig",
 		"empty": {
@@ -155,7 +167,9 @@
 			"list": "Aufzählung",
 			"link": "Link einfügen",
 			"attach": "Dateien anhängen",
-			"ccBcc": "Cc/Bcc"
+			"ccBcc": "Cc/Bcc",
+			"attachDrop": "Dateien zum Anhängen ablegen",
+			"uploading": "Wird hochgeladen…"
 		},
 		"s": {
 			"title": "Einstellungen",
@@ -183,7 +197,11 @@
 			"rtlSub": "Vorschau für rechts-nach-links Sprachen wie Arabisch und Hebräisch",
 			"reset": "Zurücksetzen",
 			"saved": "In diesem Browser gespeichert.",
-			"contrast": "Kontrast"
+			"contrast": "Kontrast",
+			"labels": "Labels",
+			"labelsSub": "Labels werden als Schlüsselwörter mit deinem Mailserver synchronisiert.",
+			"addLabel": "Label hinzufügen",
+			"remove": "Entfernen"
 		},
 		"p": {
 			"placeholder": "Befehl eingeben…",
@@ -226,6 +244,8 @@
 			"unread": "Als ungelesen markieren",
 			"send": "Senden (beim Schreiben)",
 			"close": "Schließen / zurück"
-		}
+		},
+		"snoozed": "Zurückgestellt",
+		"labels": "Labels"
 	}
 }

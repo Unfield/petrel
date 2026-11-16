@@ -14,12 +14,25 @@ export const DEFAULT_PREFS: Prefs = {
 	listW: 420,
 	listH: 44,
 	rail: false,
-	images: []
+	images: [],
+	labels: [
+		{ name: 'Work', color: '#3b82f6' },
+		{ name: 'Personal', color: '#e64980' }
+	]
 };
+
+/** A label's keyword on the server, as internal/… labelKeyword makes it. */
+export const keywordOf = (name: string) =>
+	name
+		.trim()
+		.toLowerCase()
+		.replace(/ /g, '-')
+		.replace(/[^a-z0-9\-_.\u0080-\uffff]/g, '');
 
 export const ROLE_FOLDERS = [
 	{ id: 'inbox', icon: 'inbox' },
 	{ id: 'starred', icon: 'star' },
+	{ id: 'snoozed', icon: 'clock' },
 	{ id: 'drafts', icon: 'file' },
 	{ id: 'sent', icon: 'send' },
 	{ id: 'archive', icon: 'archive' },
@@ -111,6 +124,7 @@ export class MailStore {
 	}
 
 	folderName(): string {
+		if (this.folder.startsWith('label:')) return this.labelName(this.folder.slice(6));
 		const role = ROLE_FOLDERS.find((f) => f.id === this.folder);
 		if (role) {
 			const name = t(`m.${role.id}`);
@@ -151,9 +165,17 @@ export class MailStore {
 		}, delay);
 	}
 
+	labelName(keyword: string): string {
+		return this.prefs.labels.find((l) => keywordOf(l.name) === keyword)?.name ?? keyword;
+	}
+
+	labelColor(keyword: string): string {
+		return this.prefs.labels.find((l) => keywordOf(l.name) === keyword)?.color ?? '#7d8798';
+	}
+
 	query(offset = 0): string {
 		const p = new URLSearchParams();
-		const role = ROLE_FOLDERS.some((f) => f.id === this.folder);
+		const role = ROLE_FOLDERS.some((f) => f.id === this.folder) || this.folder.startsWith('label:');
 		p.set('account', String(this.account));
 		p.set('mailbox', this.folder);
 		if (!role) p.set('account', 'all');
@@ -210,6 +232,11 @@ export class MailStore {
 	open(id: string) {
 		const it = this.item(id);
 		if (!it) return;
+		// A draft opens in the compose window, to finish writing it.
+		if (it.latest.mailboxRole === 'drafts') {
+			this.editDraft(it.latest);
+			return;
+		}
 		this.openId = this.cursorId = id;
 		this.opened = it;
 		const unseen = it.msgs.filter((m) => !m.seen);
@@ -261,8 +288,8 @@ export class MailStore {
 		}
 	}
 
-	async #act(ids: string[], action: string, mailbox?: string): Promise<Record<string, string>> {
-		const res = await post<{ moved?: Record<string, string> }>('/api/mail/actions', { ids, action, mailbox });
+	async #act(ids: string[], action: string, mailbox?: string, extra: Record<string, unknown> = {}): Promise<Record<string, string>> {
+		const res = await post<{ moved?: Record<string, string> }>('/api/mail/actions', { ids, action, mailbox, ...extra });
 		return res?.moved ?? {};
 	}
 
@@ -301,7 +328,7 @@ export class MailStore {
 	}
 
 	/** Removes items from the view, moves their messages, and offers undo. */
-	move(itemIds: string[], action: 'archive' | 'trash' | 'junk' | 'inbox' | 'delete' | 'move', toast: MessageKey, mailbox?: string) {
+	move(itemIds: string[], action: 'archive' | 'trash' | 'junk' | 'inbox' | 'delete' | 'move' | 'snooze', toast: MessageKey, mailbox?: string, extra: Record<string, unknown> = {}) {
 		const msgs = this.idsOf(itemIds);
 		if (!msgs.length) return;
 		const ids = msgs.map((m) => m.id);
@@ -313,7 +340,7 @@ export class MailStore {
 			if (next && this.prefs.layout !== 'off') this.open(next);
 			else this.close();
 		}
-		const done = this.#act(ids, action, mailbox);
+		const done = this.#act(ids, action, mailbox, extra);
 		done.then(() => this.refreshSoon()).catch((e) => {
 			this.messages = before;
 			this.#failed(e);
@@ -334,7 +361,23 @@ export class MailStore {
 						}
 						this.refreshSoon(400);
 					};
-		this.notify(t(toast, { n: itemIds.length }), undo);
+		this.notify(t(toast, { n: itemIds.length, when: String(extra.when ?? '') }), undo);
+	}
+
+	label(itemIds: string[], keyword: string, on: boolean) {
+		const msgs = this.idsOf(itemIds);
+		const ids = msgs.map((m) => m.id);
+		this.messages = this.messages.map((m) =>
+			ids.includes(m.id) ? { ...m, keywords: on ? [...new Set([...m.keywords, keyword])] : m.keywords.filter((k) => k !== keyword) } : m
+		);
+		if (this.opened) this.opened = this.item(this.opened.id) ?? this.opened;
+		this.#act(ids, on ? 'label' : 'unlabel', undefined, { label: keyword }).catch((e) => this.#failed(e));
+		if (!on && this.folder === 'label:' + keyword) this.messages = this.messages.filter((m) => !ids.includes(m.id));
+	}
+
+	snooze(itemIds: string[], until: Date) {
+		const fmt = until.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+		this.move(itemIds, 'snooze', 'm.t.snoozed', undefined, { until: +until, when: fmt });
 	}
 
 	archive(ids: string[]) {
@@ -384,7 +427,7 @@ export class MailStore {
 	compose(c: Partial<Compose> = {}) {
 		this.composes = [
 			...this.composes.map((x) => ({ ...x, min: true, max: false })),
-			{ key: ++this.#seq, accountId: this.defaultAccount(), to: '', cc: '', bcc: '', subject: '', html: '', min: false, max: false, showCc: false, ...c }
+			{ key: ++this.#seq, accountId: this.defaultAccount(), to: '', cc: '', bcc: '', subject: '', html: '', attachments: [], min: false, max: false, showCc: false, ...c }
 		];
 	}
 
@@ -399,7 +442,8 @@ export class MailStore {
 		const from = m.from[0];
 		if (mode === 'forward') {
 			const head = `${t('m.forwarded')}<br>${escapeHTML(t('m.c.from'))}: ${escapeHTML(display(from))} &lt;${escapeHTML(from?.email ?? '')}&gt;<br>${escapeHTML(t('m.c.subject'))}: ${escapeHTML(m.subject)}`;
-			this.compose({ accountId: m.accountId, subject: 'Fwd: ' + subj, html: `<br><br><div>${head}<br><br>${body}</div>` });
+			const attachments = (full?.attachments ?? []).filter((a) => !a.inline || !a.cid).map((a) => ({ key: ++this.#seq, name: a.name, size: a.size, type: a.type, message: m.id, part: a.id }));
+			this.compose({ accountId: m.accountId, subject: 'Fwd: ' + subj, html: `<br><br><div>${head}<br><br>${body}</div>`, attachments });
 			return;
 		}
 		const replyTo = full?.replyTo?.length ? full.replyTo : m.from;
@@ -430,6 +474,44 @@ export class MailStore {
 		this.composes = this.composes.map((c) => (c.key === key ? { ...c, ...patch } : c));
 	}
 
+	#payload(c: Compose, html: string, text: string) {
+		return {
+			accountId: c.accountId, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '', draftId: c.draftId ?? '',
+			attachments: c.attachments.filter((a) => a.upload || a.message).map((a) => ({ upload: a.upload, message: a.message, part: a.part }))
+		};
+	}
+
+	/** Saves a draft to the account's Drafts, replacing the last save. */
+	async saveDraft(c: Compose, html: string, text: string): Promise<boolean> {
+		try {
+			const res = await post<{ id: string }>('/api/mail/draft', this.#payload(c, html, text));
+			if (!res.id) return false;
+			this.updateCompose(c.key, { draftId: res.id });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	async discardDraft(c: Compose) {
+		if (c.draftId) await this.#act([c.draftId], 'delete').catch(() => {});
+		this.refreshSoon(800);
+	}
+
+	/** Opens a saved draft in the compose window. */
+	async editDraft(m: Summary) {
+		if (this.composes.some((c) => c.draftId === m.id)) return;
+		await this.load(m.id);
+		const full = this.full.get(m.id);
+		if (!full) return;
+		const list = (l: { name?: string; email: string }[]) => l.map((a) => (a.name ? `${a.name} <${a.email}>` : a.email)).join(', ');
+		this.compose({
+			accountId: m.accountId, to: list(full.to), cc: list(full.cc), bcc: list(full.bcc), showCc: full.cc.length + full.bcc.length > 0,
+			subject: full.subject, html: full.body.plain ? full.body.html.replace(/^<div class="petrel-plain">|<\/div>$/g, '') : full.body.html, draftId: m.id,
+			attachments: full.attachments.map((a) => ({ key: ++this.#seq, name: a.name, size: a.size, type: a.type, message: m.id, part: a.id }))
+		});
+	}
+
 	/** Sends after a few seconds, so "Undo" can still stop it. */
 	send(c: Compose, html: string, text: string) {
 		this.closeCompose(c.key);
@@ -437,7 +519,7 @@ export class MailStore {
 		const timer = setTimeout(async () => {
 			if (cancelled) return;
 			try {
-				await post('/api/mail/send', { accountId: c.accountId, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '' });
+				await post('/api/mail/send', this.#payload(c, html, text));
 				this.notify(t('m.t.sent'));
 				if (c.replyTo) this.#patch([c.replyTo], { answered: true });
 				this.refreshSoon(800);
@@ -465,8 +547,21 @@ export class MailStore {
 		this.savePrefs();
 	}
 
+	#prefsTimer: ReturnType<typeof setTimeout> | undefined;
+	/** Keeps preferences in a cookie (for the first paint) and on the server
+	 * (to follow the user to other browsers). */
 	savePrefs() {
-		const value = encodeURIComponent(JSON.stringify(this.prefs));
-		document.cookie = `petrel_prefs=${value}; path=/; max-age=31536000; samesite=lax`;
+		const { images: _images, labels: _labels, ...look } = this.prefs;
+		document.cookie = `petrel_prefs=${encodeURIComponent(JSON.stringify(look))}; path=/; max-age=31536000; samesite=lax`;
+		clearTimeout(this.#prefsTimer);
+		this.#prefsTimer = setTimeout(() => post('/api/mail/prefs', this.prefs).catch(() => {}), 800);
+	}
+
+	async suggest(q: string): Promise<{ name?: string; email: string }[]> {
+		try {
+			return await api('/api/mail/contacts?q=' + encodeURIComponent(q));
+		} catch {
+			return [];
+		}
 	}
 }

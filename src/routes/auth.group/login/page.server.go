@@ -22,6 +22,7 @@ type Credentials struct {
 }
 
 type Page struct {
+	Direct    bool           `json:"direct"`
 	Next      string         `json:"next"`
 	Error     string         `json:"error"`
 	Providers []app.Provider `json:"providers"`
@@ -34,11 +35,30 @@ func Load(ctx *kit.Ctx) (Page, error) {
 		return Page{}, kit.Redirect(http.StatusSeeOther, next)
 	}
 	// error is what sign-in with GitHub or Google sends back when it fails.
-	return Page{Next: next, Error: q.Get("error"), Providers: app.Current.Providers}, nil
+	return Page{Direct: app.Current.Direct(), Next: next, Error: q.Get("error"), Providers: app.Current.Providers}, nil
+}
+
+type Mailbox struct {
+	Email    string `form:"email" validate:"required,email,max=254" label:"Email address"`
+	Password string `form:"password" validate:"required,max=500"`
+	Next     string `form:"next"`
 }
 
 var Actions = kit.Actions{
+	// mailbox signs in with a mailbox's own address and password (direct mode).
+	"mailbox": kit.FormAction(func(ctx *kit.Ctx, in Mailbox) (struct{}, error) {
+		if !app.Current.Direct() {
+			return struct{}{}, kit.NotFound()
+		}
+		if err := app.Current.DirectSignIn(ctx, in.Email, in.Password); err != nil {
+			return struct{}{}, err
+		}
+		return struct{}{}, kit.Redirect(http.StatusSeeOther, app.SafeNext(in.Next))
+	}),
 	"default": kit.FormAction(func(ctx *kit.Ctx, in Credentials) (struct{}, error) {
+		if app.Current.Direct() {
+			return struct{}{}, kit.FormError("Sign in with your email account.")
+		}
 		next := app.SafeNext(in.Next)
 		_, err := app.Current.Accounts.SignIn(ctx, in.Email, in.Password, in.Remember)
 		if errors.Is(err, accounts.ErrTwoStepRequired) {

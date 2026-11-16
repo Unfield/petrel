@@ -128,6 +128,11 @@ func (m *MailAccounts) Boxes(ctx context.Context, userID, id int64, fresh bool) 
 	if err != nil {
 		return nil, err
 	}
+	for i := range boxes {
+		if boxes[i].Role == "" && strings.EqualFold(boxes[i].Name, SnoozedName) {
+			boxes[i].Role = "snoozed"
+		}
+	}
 	boxCache.Lock()
 	boxCache.m[id] = boxEntry{boxes: boxes, at: time.Now()}
 	boxCache.Unlock()
@@ -208,6 +213,7 @@ type ListQuery struct {
 	Flagged     bool   `query:"flagged"`
 	Attachments bool   `query:"attachments"`
 	Week        bool   `query:"week"`
+	Label       string `query:"label"`
 	Offset      int    `query:"offset"`
 	Limit       int    `query:"limit"`
 }
@@ -226,7 +232,7 @@ func (m *MailAccounts) Query(ctx context.Context, userID int64, in ListQuery) (L
 	if in.Limit <= 0 || in.Limit > 100 {
 		in.Limit = 50
 	}
-	q := mail.Query{Search: in.Search, Unread: in.Unread, Flagged: in.Flagged, HasAttachment: in.Attachments, Limit: in.Offset + in.Limit}
+	q := mail.Query{Search: in.Search, Unread: in.Unread, Flagged: in.Flagged, HasAttachment: in.Attachments, Keyword: in.Label, Limit: in.Offset + in.Limit}
 	if in.Week {
 		q.Since = time.Now().AddDate(0, 0, -7)
 	}
@@ -280,6 +286,35 @@ func (m *MailAccounts) Query(ctx context.Context, userID int64, in ListQuery) (L
 				tq.MailboxID = t.box
 			case in.Mailbox == "starred":
 				tq.Flagged = true
+			case strings.HasPrefix(in.Mailbox, "label:"):
+				tq.Keyword = strings.TrimPrefix(in.Mailbox, "label:")
+				// Labels span the inbox and the archive, like starred.
+				ids := []string{}
+				for _, b := range boxes {
+					if b.Role == mail.RoleInbox || b.Role == mail.RoleArchive || b.Role == mail.RoleSent {
+						ids = append(ids, b.ID)
+					}
+				}
+				var all []mail.Summary
+				total := 0
+				for _, id := range ids {
+					lq := tq
+					lq.MailboxID = id
+					page, err := p.Query(ctx, lq)
+					if err != nil {
+						fail(err)
+						return
+					}
+					all = append(all, page.Messages...)
+					total += page.Total
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				res.Total += total
+				for _, s := range all {
+					res.Messages = append(res.Messages, View(acc.ID, s, boxes))
+				}
+				return
 			default:
 				role := in.Mailbox
 				if role == "" {
@@ -301,6 +336,12 @@ func (m *MailAccounts) Query(ctx context.Context, userID int64, in ListQuery) (L
 				fail(err)
 				return
 			}
+			// Senders become address suggestions.
+			var from []mail.Address
+			for _, s := range page.Messages {
+				from = append(from, s.From...)
+			}
+			go m.Remember(context.WithoutCancel(ctx), userID, from, 0)
 			mu.Lock()
 			defer mu.Unlock()
 			res.Total += page.Total

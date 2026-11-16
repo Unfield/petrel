@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { t, type MessageKey } from '@ternkit/tern';
 	import Icon from './Icon.svelte';
+	import LabelMenu from './LabelMenu.svelte';
+	import SnoozeMenu from './SnoozeMenu.svelte';
 	import type { MailStore } from './store.svelte';
 	import type { Item } from './types';
 	import { display, first, fmtShort, hue, initials } from './util';
@@ -13,6 +15,12 @@
 	const filtered = $derived(!!store.search.trim() || store.filters.size > 0);
 	const outgoing = $derived(store.folder === 'sent' || store.folder === 'drafts');
 	let spinning = $state(false);
+	let bulkMenu = $state<'' | 'label' | 'snooze'>('');
+	$effect(() => {
+		const close = () => (bulkMenu = '');
+		window.addEventListener('petrel:closemenus', close);
+		return () => window.removeEventListener('petrel:closemenus', close);
+	});
 
 	function toggleAll() {
 		if (allChecked) store.checked.clear();
@@ -53,6 +61,7 @@
 
 	const bulk = (fn: (ids: string[]) => void) => () => fn([...store.checked]);
 	const ids = (it: Item) => it.msgs.map((m) => m.id);
+	const kwsOf = (it: Item) => [...new Set(it.msgs.flatMap((m) => m.keywords ?? []))].filter((k) => store.folder !== 'label:' + k);
 </script>
 
 <section class="pane list-pane" aria-label={store.folderName()}>
@@ -65,6 +74,14 @@
 			<button class="tb" onclick={bulk((x) => store.setSeen(store.idsOf(x).map((m) => m.id), true))} title={t('m.a.read')}><Icon name="mailOpen" /></button>
 			<button class="tb" onclick={bulk((x) => store.setSeen(store.idsOf(x).map((m) => m.id), false))} title={t('m.a.unread')}><Icon name="mail" /></button>
 			<button class="tb" onclick={bulk((x) => store.junk(x))} title={store.folder === 'junk' ? t('m.a.notJunk') : t('m.a.junk')}><Icon name="spam" /></button>
+			<div class="pop-wrap">
+				<button class="tb" onclick={() => (bulkMenu = bulkMenu === 'label' ? '' : 'label')} title={t('m.a.label')}><Icon name="tag" /></button>
+				{#if bulkMenu === 'label'}<LabelMenu {store} items={[...store.checked]} onclose={() => (bulkMenu = '')} />{/if}
+			</div>
+			<div class="pop-wrap">
+				<button class="tb" onclick={() => (bulkMenu = bulkMenu === 'snooze' ? '' : 'snooze')} title={t('m.a.snooze')}><Icon name="clock" /></button>
+				{#if bulkMenu === 'snooze'}<SnoozeMenu {store} items={[...store.checked]} onclose={() => (bulkMenu = '')} />{/if}
+			</div>
 			<button class="tb" onclick={() => store.checked.clear()} title={t('m.a.clear')}><Icon name="x" /></button>
 		</div>
 	{:else}
@@ -146,6 +163,9 @@
 						<div class="r-text">
 							<span class="r-subj">{it.latest.subject || t('m.noSubject')}</span><span class="r-sep"> — </span><span class="r-snip">{it.latest.preview}</span>
 						</div>
+						{#if kwsOf(it).length}
+							<div class="r-labels">{#each kwsOf(it) as k (k)}<span class="lchip" style:--c={store.labelColor(k)}>{store.labelName(k)}</span>{/each}</div>
+						{/if}
 					</div>
 					<div class="r-actions">
 						{#if !store.inTrash}<button onclick={(e) => (e.stopPropagation(), store.archive([it.id]))} title={t('m.a.archive')}><Icon name="archive" size={17} /></button>{/if}

@@ -1,7 +1,9 @@
 package mail
 
 import (
+	"bufio"
 	"bytes"
+	"crypto/tls"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -34,16 +36,66 @@ const pop3Inbox = "INBOX"
 type guardedDialer struct {
 	ctx          context.Context
 	allowPrivate bool
+	startTLS     bool
+	host         string
 }
 
 func (d guardedDialer) Dial(network, address string) (net.Conn, error) {
-	return dialer(d.allowPrivate).DialContext(d.ctx, network, address)
+	conn, err := dialer(d.allowPrivate).DialContext(d.ctx, network, address)
+	if err != nil || !d.startTLS {
+		return conn, err
+	}
+	return stls(conn, d.host)
+}
+
+// stls upgrades a POP3 connection with STLS (RFC 2595), then replays a
+// greeting so go-pop3, which reads one first, carries on as usual.
+func stls(conn net.Conn, host string) (net.Conn, error) {
+	_ = conn.SetDeadline(time.Now().Add(20 * time.Second))
+	r := bufio.NewReader(conn)
+	line := func() (string, error) {
+		s, err := r.ReadString('\n')
+		if err == nil && !strings.HasPrefix(s, "+OK") {
+			err = fmt.Errorf("mail: POP3 server: %s", strings.TrimSpace(s))
+		}
+		return s, err
+	}
+	if _, err := line(); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if _, err := io.WriteString(conn, "STLS\r\n"); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	if _, err := line(); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("mail: this POP3 server doesn't offer STARTTLS: %w", err)
+	}
+	tc := tls.Client(conn, tlsConfig(host))
+	if err := tc.Handshake(); err != nil {
+		conn.Close()
+		return nil, err
+	}
+	_ = conn.SetDeadline(time.Time{})
+	return &greeted{Conn: tc, pending: []byte("+OK ready\r\n")}, nil
+}
+
+type greeted struct {
+	net.Conn
+	pending []byte
+}
+
+func (g *greeted) Read(b []byte) (int, error) {
+	if len(g.pending) > 0 {
+		n := copy(b, g.pending)
+		g.pending = g.pending[n:]
+		return n, nil
+	}
+	return g.Conn.Read(b)
 }
 
 func (p *pop3Provider) session(ctx context.Context, fn func(c *pop3.Conn) error) error {
-	if p.s.Incoming.Security == StartTLS {
-		return fmt.Errorf("mail: POP3 with STARTTLS isn't supported yet: use port 995 with TLS")
-	}
 	if p.s.Incoming.Security == Plain && !p.o.AllowPrivate {
 		return fmt.Errorf("mail: unencrypted connections are only allowed for local test servers")
 	}
@@ -51,14 +103,24 @@ func (p *pop3Provider) session(ctx context.Context, fn func(c *pop3.Conn) error)
 	defer p.mu.Unlock()
 	client := pop3.New(pop3.Opt{
 		Host: p.s.Incoming.Host, Port: p.s.Incoming.Port, TLSEnabled: p.s.Incoming.Security == TLS,
-		DialTimeout: 15 * time.Second, Dialer: guardedDialer{ctx: ctx, allowPrivate: p.o.AllowPrivate},
+		DialTimeout: 15 * time.Second,
+		Dialer:      guardedDialer{ctx: ctx, allowPrivate: p.o.AllowPrivate, startTLS: p.s.Incoming.Security == StartTLS, host: p.s.Incoming.Host},
 	})
 	conn, err := client.NewConn()
 	if err != nil {
 		return fmt.Errorf("mail: connecting to %s: %w", p.s.Incoming.Host, err)
 	}
 	defer conn.Quit()
-	if err := conn.Auth(p.c.Username, p.c.Password); err != nil {
+	if p.c.OAuth != nil {
+		tok, err := token(ctx, &p.c, p.o)
+		if err != nil {
+			return err
+		}
+		_, x, _ := xoauth2{user: p.c.Username, token: tok}.Start()
+		if _, err := conn.Cmd("AUTH XOAUTH2 "+base64.StdEncoding.EncodeToString(x), false); err != nil {
+			return ErrAuth
+		}
+	} else if err := conn.Auth(p.c.Username, p.c.Password); err != nil {
 		return ErrAuth
 	}
 	return fn(conn)
@@ -300,7 +362,7 @@ func (p *pop3Provider) Destroy(ctx context.Context, ids []string) error {
 }
 
 func (p *pop3Provider) Send(ctx context.Context, m Outgoing) error {
-	_, err := sendSMTP(ctx, p.s.SMTP, p.c, p.o.AllowPrivate, m)
+	_, err := sendSMTP(ctx, p.s.SMTP, &p.c, p.o, m)
 	return err
 }
 
@@ -311,6 +373,18 @@ func (p *pop3Provider) State(ctx context.Context) (state string, err error) {
 		return err
 	})
 	return state, err
+}
+
+func (p *pop3Provider) SaveDraft(context.Context, Outgoing, string) (string, error) {
+	return "", ErrUnsupported
+}
+
+func (p *pop3Provider) SetKeywords(context.Context, []string, []string, []string) error {
+	return ErrUnsupported
+}
+
+func (p *pop3Provider) EnsureMailbox(context.Context, string) (string, error) {
+	return "", ErrUnsupported
 }
 
 func (p *pop3Provider) Close() error { return nil }

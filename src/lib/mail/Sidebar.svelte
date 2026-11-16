@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { t } from '@ternkit/tern';
 	import Icon from './Icon.svelte';
-	import { ROLE_FOLDERS, type MailStore } from './store.svelte';
+	import { keywordOf, ROLE_FOLDERS, type MailStore } from './store.svelte';
 
 	let { store }: { store: MailStore } = $props();
 
 	const acc = $derived(store.account === 'all' ? undefined : store.accountById(store.account));
 	// With one account chosen, only the roles it has, and its own folders too.
 	const roles = $derived(
-		ROLE_FOLDERS.filter((f) => f.id === 'starred' || !acc || acc.mailboxes.some((b) => b.role === f.id))
+		ROLE_FOLDERS.filter(
+			(f) =>
+				f.id === 'starred' ||
+				(f.id === 'snoozed' ? store.accounts.some((a) => (!acc || a.id === acc.id) && a.mailboxes.some((b) => b.role === 'snoozed')) : !acc || acc.mailboxes.some((b) => b.role === f.id))
+		)
 	);
 	const custom = $derived(acc ? acc.mailboxes.filter((b) => !b.role) : []);
 	const count = (role: string) => (role === 'inbox' || role === 'junk' ? store.unread(role) : role === 'drafts' ? draftCount() : 0);
@@ -37,6 +41,17 @@
 		{#each custom as b (b.id)}
 			<button class="nav-item" class:active={store.folder === b.id} class:has-unread={b.unread > 0} title={b.name} onclick={() => store.go(b.id)}>
 				<Icon name="folder" /><span class="label">{b.name}</span>{#if b.unread}<span class="count">{b.unread}</span>{/if}
+			</button>
+		{/each}
+	{/if}
+
+	{#if store.prefs.labels.length}
+		<div class="nav-sep"></div>
+		<div class="nav-section">{t('m.labels')}</div>
+		{#each store.prefs.labels as l (l.name)}
+			{@const id = 'label:' + keywordOf(l.name)}
+			<button class="nav-item" class:active={store.folder === id} title={l.name} onclick={() => store.go(id)}>
+				<span class="ldot" style:background={l.color} style:margin-inline="4px"></span><span class="label">{l.name}</span>
 			</button>
 		{/each}
 	{/if}

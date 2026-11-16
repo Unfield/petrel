@@ -31,6 +31,7 @@ func GET(ctx *kit.Ctx, in In) (app.MessageView, error) {
 		return app.MessageView{}, app.MailError(err)
 	}
 	boxes, _ := app.Current.Mail.Boxes(ctx, user, account, false)
+	app.Current.Mail.Remember(ctx, user, m.From, 1)
 	v := app.MessageView{
 		SummaryView: app.View(account, m.Summary, boxes),
 		ReplyTo:     m.ReplyTo, Bcc: m.Bcc, Body: mail.Clean(m), Attachments: []app.AttachmentView{},

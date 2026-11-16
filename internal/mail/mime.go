@@ -181,7 +181,17 @@ func build(m Outgoing, hostname string) ([]byte, string, error) {
 	}
 	h.Set("User-Agent", "Petrel")
 	var buf bytes.Buffer
-	w, err := gomail.CreateInlineWriter(&buf, h)
+	var mw *gomail.Writer
+	var w *gomail.InlineWriter
+	var err error
+	if len(m.Attachments) > 0 {
+		if mw, err = gomail.CreateWriter(&buf, h); err != nil {
+			return nil, "", err
+		}
+		w, err = mw.CreateInline()
+	} else {
+		w, err = gomail.CreateInlineWriter(&buf, h)
+	}
 	if err != nil {
 		return nil, "", err
 	}
@@ -199,6 +209,30 @@ func build(m Outgoing, hostname string) ([]byte, string, error) {
 	}
 	if err := w.Close(); err != nil {
 		return nil, "", err
+	}
+	for _, f := range m.Attachments {
+		var ah gomail.AttachmentHeader
+		typ := f.Type
+		if typ == "" {
+			typ = "application/octet-stream"
+		}
+		ah.SetContentType(typ, nil)
+		ah.SetFilename(f.Name)
+		aw, err := mw.CreateAttachment(ah)
+		if err != nil {
+			return nil, "", err
+		}
+		if _, err := aw.Write(f.Data); err != nil {
+			return nil, "", err
+		}
+		if err := aw.Close(); err != nil {
+			return nil, "", err
+		}
+	}
+	if mw != nil {
+		if err := mw.Close(); err != nil {
+			return nil, "", err
+		}
 	}
 	return buf.Bytes(), id, nil
 }

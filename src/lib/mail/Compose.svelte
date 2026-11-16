@@ -1,19 +1,28 @@
 <script lang="ts">
 	import { t } from '@ternkit/tern';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import Icon from './Icon.svelte';
 	import type { MailStore } from './store.svelte';
-	import type { Compose } from './types';
-	import { isMac } from './util';
+	import type { Compose, OutFile } from './types';
+	import { fmtSize, isMac } from './util';
 
 	let { store, c }: { store: MailStore; c: Compose } = $props();
 
 	let body = $state<HTMLDivElement>();
 	let toInput = $state<HTMLInputElement>();
+	let fileInput = $state<HTMLInputElement>();
 	let shake = $state(false);
-	let timer: ReturnType<typeof setTimeout>;
+	let dragging = $state(false);
+	let savedAt = $state<Date | null>(null);
+	let dirty = false;
+	let saving = false;
+	let editTimer: ReturnType<typeof setTimeout>;
+	let saveTimer: ReturnType<typeof setTimeout>;
+	let seq = 0;
 
 	const update = (patch: Partial<Compose>) => store.updateCompose(c.key, patch);
+	const html = () => body?.innerHTML ?? '';
+	const text = () => body?.innerText.trim() ?? '';
 
 	onMount(() => {
 		if (body) body.innerHTML = c.html;
@@ -27,11 +36,29 @@
 			getSelection()?.addRange(r);
 		}
 	});
+	onDestroy(() => {
+		clearTimeout(editTimer);
+		clearTimeout(saveTimer);
+	});
 
-	// Keeps the text in the store, so it survives minimizing and undo.
-	function edited() {
-		clearTimeout(timer);
-		timer = setTimeout(() => update({ html: body?.innerHTML ?? '' }), 600);
+	// Every change is kept in the store at once, and saved to the server's
+	// Drafts a few seconds after typing stops.
+	function changed() {
+		dirty = true;
+		clearTimeout(editTimer);
+		editTimer = setTimeout(() => update({ html: html() }), 400);
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(save, 4000);
+	}
+
+	async function save() {
+		if (!dirty || saving || (!(c.to + c.subject).trim() && !text() && !c.attachments.length)) return;
+		if (c.attachments.some((a) => a.progress !== undefined)) return void (saveTimer = setTimeout(save, 2000));
+		saving = true;
+		dirty = false;
+		const latest = store.composes.find((x) => x.key === c.key);
+		if (latest && (await store.saveDraft(latest, html(), text()))) savedAt = new Date();
+		saving = false;
 	}
 
 	function send() {
@@ -42,7 +69,9 @@
 			store.notify(t('m.t.needTo'), undefined, true);
 			return;
 		}
-		store.send(c, body?.innerHTML ?? '', body?.innerText.trim() ?? '');
+		if (c.attachments.some((a) => a.progress !== undefined)) return store.notify(t('m.c.uploading'));
+		clearTimeout(saveTimer);
+		store.send({ ...c, attachments: c.attachments.filter((a) => !a.error) }, html(), text());
 	}
 
 	function fmt(cmd: string) {
@@ -51,24 +80,130 @@
 			const url = prompt('URL', 'https://');
 			if (url && /^(https?:|mailto:)/i.test(url)) document.execCommand('createLink', false, url);
 		} else document.execCommand(cmd);
+		changed();
 	}
 
 	function discard() {
-		const keep = { ...c, html: body?.innerHTML ?? '' };
+		clearTimeout(saveTimer);
+		const keep = { ...c, html: html() };
 		store.closeCompose(c.key);
-		store.notify(t('m.t.discarded'), () => (store.composes = [...store.composes, { ...keep, min: false }]));
+		store.discardDraft(c);
+		store.notify(t('m.t.discarded'), () => (store.composes = [...store.composes, { ...keep, draftId: undefined, min: false }]));
 	}
 
-	function close() {
-		update({ html: body?.innerHTML ?? '' });
-		const hasContent = (c.to + c.subject).trim() || body?.innerText.trim();
+	async function close() {
+		clearTimeout(saveTimer);
+		update({ html: html() });
+		const hasContent = (c.to + c.subject).trim() || text() || c.attachments.length;
 		store.closeCompose(c.key);
-		if (hasContent) {
+		if (!hasContent) return;
+		if (await store.saveDraft({ ...c, html: html() }, html(), text())) {
+			store.notify(t('m.t.draftSaved'));
+			store.refreshSoon(600);
+		} else {
+			// The account can't keep drafts (POP3): keep it on this device.
 			const drafts = JSON.parse(localStorage.getItem('petrel-drafts') || '[]');
-			drafts.push({ ...c, html: body?.innerHTML ?? '', saved: Date.now() });
+			drafts.push({ ...c, html: html(), saved: Date.now() });
 			localStorage.setItem('petrel-drafts', JSON.stringify(drafts.slice(-20)));
 			store.notify(t('m.t.saved'));
 		}
+	}
+
+	// ─── Attachments ──────────────────────────────────────
+
+	function patchFile(key: number, patch: Partial<OutFile>) {
+		const cur = store.composes.find((x) => x.key === c.key);
+		if (cur) update({ attachments: cur.attachments.map((a) => (a.key === key ? { ...a, ...patch } : a)) });
+	}
+
+	function attach(files: FileList | File[] | null) {
+		for (const f of files ?? []) {
+			if (f.size > 25 * 1024 * 1024) {
+				store.notify(t('m.t.tooBig', { x: f.name }), undefined, true);
+				continue;
+			}
+			const key = Date.now() * 100 + seq++;
+			update({ attachments: [...(store.composes.find((x) => x.key === c.key)?.attachments ?? []), { key, name: f.name, size: f.size, type: f.type, progress: 0 }] });
+			const form = new FormData();
+			form.append('file', f);
+			const xhr = new XMLHttpRequest();
+			xhr.open('POST', '/api/mail/upload');
+			xhr.setRequestHeader('accept', 'application/json');
+			xhr.upload.onprogress = (e) => e.lengthComputable && patchFile(key, { progress: e.loaded / e.total });
+			xhr.onload = () => {
+				if (xhr.status === 200) {
+					const u = JSON.parse(xhr.responseText);
+					patchFile(key, { upload: u.id, type: u.type, progress: undefined });
+					changed();
+				} else {
+					let msg = xhr.statusText;
+					try {
+						msg = JSON.parse(xhr.responseText).message || msg;
+					} catch {
+						/* not JSON */
+					}
+					patchFile(key, { progress: undefined, error: msg });
+					store.notify(t('m.t.uploadFailed', { x: f.name, y: msg }), undefined, true);
+				}
+			};
+			xhr.onerror = () => patchFile(key, { progress: undefined, error: 'network' });
+			xhr.send(form);
+		}
+	}
+
+	function removeFile(key: number) {
+		update({ attachments: c.attachments.filter((a) => a.key !== key) });
+		changed();
+	}
+
+	function paste(e: ClipboardEvent) {
+		const files = [...(e.clipboardData?.files ?? [])];
+		if (files.length) {
+			e.preventDefault();
+			attach(files);
+		}
+	}
+
+	// ─── Address suggestions ──────────────────────────────
+
+	type Field = 'to' | 'cc' | 'bcc';
+	let field = $state<Field | null>(null);
+	let options = $state<{ name?: string; email: string }[]>([]);
+	let active = $state(0);
+	let suggestTimer: ReturnType<typeof setTimeout>;
+
+	function typed(f: Field, value: string) {
+		update({ [f]: value });
+		changed();
+		field = f;
+		const term = value.split(/[,;]/).pop()?.trim() ?? '';
+		clearTimeout(suggestTimer);
+		if (term.length < 1) return void (options = []);
+		suggestTimer = setTimeout(async () => {
+			const taken = value.toLowerCase();
+			options = (await store.suggest(term)).filter((o) => !taken.includes(o.email + ','));
+			active = 0;
+		}, 120);
+	}
+
+	function choose(o: { name?: string; email: string }) {
+		if (!field) return;
+		const parts = c[field]
+			.split(/[,;]/)
+			.slice(0, -1)
+			.map((s) => s.trim())
+			.filter(Boolean);
+		parts.push(o.name ? `${o.name.replace(/[",<>]/g, '')} <${o.email}>` : o.email);
+		update({ [field]: parts.join(', ') + ', ' });
+		options = [];
+	}
+
+	function fieldKeys(e: KeyboardEvent) {
+		if (!options.length) return;
+		if (e.key === 'ArrowDown') (e.preventDefault(), (active = (active + 1) % options.length));
+		else if (e.key === 'ArrowUp') (e.preventDefault(), (active = (active - 1 + options.length) % options.length));
+		else if (e.key === 'Enter' || e.key === 'Tab') (e.preventDefault(), choose(options[active]));
+		else if (e.key === 'Escape') (e.stopPropagation(), (options = []));
 	}
 
 	function keydown(e: KeyboardEvent) {
@@ -79,9 +214,62 @@
 	}
 
 	const mod = isMac() ? '⌘' : 'Ctrl';
+	const ext = (n: string) => n.split('.').pop()?.toUpperCase().slice(0, 4) ?? '';
 </script>
 
-<div role="dialog" tabindex="-1" class="compose" class:min={c.min} class:max={c.max} class:shake onkeydown={keydown} aria-label={c.subject || t('m.c.new')}>
+{#snippet address(f: Field, label: string)}
+	<div class="c-field">
+		<label for="{f}{c.key}">{label}</label>
+		<div class="ac">
+			{#if f === 'to'}
+				<input
+					id="to{c.key}"
+					bind:this={toInput}
+					value={c.to}
+					oninput={(e) => typed('to', e.currentTarget.value)}
+					onkeydown={fieldKeys}
+					onblur={() => setTimeout(() => field === 'to' && (options = []), 150)}
+					autocomplete="off"
+					spellcheck="false"
+				/>
+			{:else}
+				<input
+					id="{f}{c.key}"
+					value={c[f]}
+					oninput={(e) => typed(f, e.currentTarget.value)}
+					onkeydown={fieldKeys}
+					onblur={() => setTimeout(() => field === f && (options = []), 150)}
+					autocomplete="off"
+					spellcheck="false"
+				/>
+			{/if}
+			{#if field === f && options.length}
+				<div class="ac-list" role="listbox">
+					{#each options as o, i (o.email)}
+						<button class:on={i === active} role="option" aria-selected={i === active} onmousedown={(e) => (e.preventDefault(), choose(o))}>
+							<b>{o.name || o.email}</b>{#if o.name}<span>{o.email}</span>{/if}
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</div>
+		{#if f === 'to' && !c.showCc}<button class="cc-toggle" onclick={() => update({ showCc: true })}>{t('m.c.ccBcc')}</button>{/if}
+	</div>
+{/snippet}
+
+<div
+	role="dialog"
+	tabindex="-1"
+	class="compose"
+	class:min={c.min}
+	class:max={c.max}
+	class:shake
+	onkeydown={keydown}
+	ondragover={(e) => (e.preventDefault(), (dragging = true))}
+	ondragleave={(e) => e.currentTarget === e.target && (dragging = false)}
+	ondrop={(e) => (e.preventDefault(), (dragging = false), attach(e.dataTransfer?.files ?? null))}
+	aria-label={c.subject || t('m.c.new')}
+>
 	<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 	<header class="c-head" onclick={() => c.min && update({ min: false })}>
 		<span class="c-title">{c.subject || t('m.c.new')}</span>
@@ -91,42 +279,46 @@
 	</header>
 	<div class="c-field">
 		<label for="from{c.key}">{t('m.c.from')}</label>
-		<select id="from{c.key}" class="from" value={c.accountId} onchange={(e) => update({ accountId: +e.currentTarget.value })}>
+		<select id="from{c.key}" class="from" value={c.accountId} onchange={(e) => (update({ accountId: +e.currentTarget.value, draftId: undefined }), changed())}>
 			{#each store.accounts as a (a.id)}<option value={a.id}>{a.displayName ? `${a.displayName} <${a.email}>` : a.email}</option>{/each}
 		</select>
 	</div>
-	<div class="c-field">
-		<label for="to{c.key}">{t('m.c.to')}</label>
-		<input id="to{c.key}" bind:this={toInput} value={c.to} oninput={(e) => update({ to: e.currentTarget.value })} autocomplete="email" spellcheck="false" />
-		{#if !c.showCc}<button class="cc-toggle" onclick={() => update({ showCc: true })}>{t('m.c.ccBcc')}</button>{/if}
-	</div>
+	{@render address('to', t('m.c.to'))}
 	{#if c.showCc}
-		<div class="c-field">
-			<label for="cc{c.key}">{t('m.c.cc')}</label>
-			<input id="cc{c.key}" value={c.cc} oninput={(e) => update({ cc: e.currentTarget.value })} spellcheck="false" />
-		</div>
-		<div class="c-field">
-			<label for="bcc{c.key}">{t('m.c.bcc')}</label>
-			<input id="bcc{c.key}" value={c.bcc} oninput={(e) => update({ bcc: e.currentTarget.value })} spellcheck="false" />
-		</div>
+		{@render address('cc', t('m.c.cc'))}
+		{@render address('bcc', t('m.c.bcc'))}
 	{/if}
 	<div class="c-field">
 		<input
 			placeholder={t('m.c.subject')}
 			value={c.subject}
-			oninput={(e) => update({ subject: e.currentTarget.value })}
+			oninput={(e) => (update({ subject: e.currentTarget.value }), changed())}
 			onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), body?.focus())}
 		/>
 	</div>
-	<div class="c-body" contenteditable="true" bind:this={body} data-placeholder={t('m.c.body')} oninput={edited} role="textbox" aria-multiline="true" tabindex="0"></div>
+	<div class="c-body" contenteditable="true" bind:this={body} data-placeholder={t('m.c.body')} oninput={changed} onpaste={paste} role="textbox" aria-multiline="true" tabindex="0"></div>
+	{#if c.attachments.length}
+		<div class="c-files">
+			{#each c.attachments as a (a.key)}
+				<div class="c-file" class:error={!!a.error} title={a.error ?? a.name}>
+					<span class="att-ic" class:img={a.type.startsWith('image/')} class:doc={!a.type.startsWith('image/') && a.type !== 'application/pdf'}>{ext(a.name)}</span>
+					<span class="c-file-meta"><b>{a.name}</b><span>{a.error ?? (a.progress !== undefined ? `${Math.round(a.progress * 100)} %` : fmtSize(a.size))}</span></span>
+					{#if a.progress !== undefined}<i class="c-progress" style:width="{a.progress * 100}%"></i>{/if}
+					<button class="tb" onclick={() => removeFile(a.key)} aria-label={t('m.s.remove')}><Icon name="x" size={14} /></button>
+				</div>
+			{/each}
+		</div>
+	{/if}
+	{#if dragging}<div class="c-drop"><Icon name="clip" size={22} />{t('m.c.attachDrop')}</div>{/if}
 	<footer class="c-foot">
 		<button class="btn primary" onclick={send} title="{mod}+Enter">{t('m.c.send')}</button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('bold')} title={t('m.c.bold')}><Icon name="bold" size={17} /></button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('italic')} title={t('m.c.italic')}><Icon name="italic" size={17} /></button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('insertUnorderedList')} title={t('m.c.list')}><Icon name="list" size={17} /></button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('createLink')} title={t('m.c.link')}><Icon name="link" size={17} /></button>
-		<button class="tb" onclick={() => store.notify(t('m.t.attachSoon'))} title={t('m.c.attach')}><Icon name="clip" size={17} /></button>
-		<span class="spacer"></span>
+		<button class="tb" onclick={() => fileInput?.click()} title={t('m.c.attach')}><Icon name="clip" size={17} /></button>
+		<input type="file" multiple hidden bind:this={fileInput} onchange={(e) => (attach(e.currentTarget.files), (e.currentTarget.value = ''))} />
+		<span class="c-saved">{savedAt ? t('m.c.saved') : ''}</span><span class="spacer"></span>
 		<button class="tb" onclick={discard} title={t('m.c.discard')}><Icon name="trash" size={17} /></button>
 	</footer>
 </div>

@@ -11,13 +11,19 @@ import (
 )
 
 type Page struct {
-	Accounts     []app.MailAccount `json:"accounts"`
-	AllowPrivate bool              `json:"allowPrivate"`
+	Accounts     []app.MailAccount  `json:"accounts"`
+	AllowPrivate bool               `json:"allowPrivate"`
+	Direct       bool               `json:"direct"`
+	OAuth        []app.MailProvider `json:"oauth"`
+	Connected    string             `json:"connected"`
+	Error        string             `json:"error"`
 }
 
 func Load(ctx *kit.Ctx) (Page, error) {
 	list, err := app.Current.Mail.List(ctx, app.UserID(ctx))
-	return Page{Accounts: list, AllowPrivate: app.Current.Mail.AllowPrivate()}, err
+	q := ctx.URL().Query()
+	return Page{Accounts: list, AllowPrivate: app.Current.Mail.AllowPrivate(), Direct: app.Current.Direct(),
+		OAuth: app.Current.OAuthProviders(), Connected: q.Get("connected"), Error: q.Get("error")}, err
 }
 
 type Connect struct {
@@ -46,6 +52,9 @@ type Done struct {
 
 var Actions = kit.Actions{
 	"connect": kit.FormAction(func(ctx *kit.Ctx, in Connect) (Done, error) {
+		if app.Current.Direct() {
+			return Done{}, kit.FormError("This Petrel reads the mailbox you signed in with.")
+		}
 		s := mail.Settings{Protocol: mail.Protocol(in.Protocol), Username: strings.TrimSpace(in.Username)}
 		if s.Username == "" {
 			s.Username = in.Email

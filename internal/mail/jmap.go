@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -30,6 +31,7 @@ type jmapProvider struct {
 type jmapSession struct {
 	APIURL          string                     `json:"apiUrl"`
 	DownloadURL     string                     `json:"downloadUrl"`
+	UploadURL       string                     `json:"uploadUrl"`
 	EventSourceURL  string                     `json:"eventSourceUrl"`
 	PrimaryAccounts map[string]string          `json:"primaryAccounts"`
 	Capabilities    map[string]json.RawMessage `json:"capabilities"`
@@ -47,9 +49,18 @@ func newJMAP(s Settings, c Credentials, o Options) *jmapProvider {
 	return &jmapProvider{s: s, c: c, o: o, http: httpClient(o.AllowPrivate, 60*time.Second)}
 }
 
-func (p *jmapProvider) auth(req *http.Request) {
-	req.SetBasicAuth(p.c.Username, p.c.Password)
+func (p *jmapProvider) auth(req *http.Request) error {
 	req.Header.Set("User-Agent", "Petrel")
+	if p.c.OAuth != nil {
+		tok, err := token(req.Context(), &p.c, p.o)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Authorization", "Bearer "+tok)
+		return nil
+	}
+	req.SetBasicAuth(p.c.Username, p.c.Password)
+	return nil
 }
 
 func (p *jmapProvider) getSession(ctx context.Context) (*jmapSession, error) {
@@ -62,7 +73,9 @@ func (p *jmapProvider) getSession(ctx context.Context) (*jmapSession, error) {
 	if err != nil {
 		return nil, err
 	}
-	p.auth(req)
+	if err := p.auth(req); err != nil {
+		return nil, err
+	}
 	res, err := p.http.Do(req)
 	if err != nil {
 		return nil, err
@@ -84,7 +97,7 @@ func (p *jmapProvider) getSession(ctx context.Context) (*jmapSession, error) {
 	}
 	// Relative URLs are resolved against the session's address.
 	base, _ := url.Parse(p.s.JMAPURL)
-	for _, u := range []*string{&s.APIURL, &s.DownloadURL, &s.EventSourceURL} {
+	for _, u := range []*string{&s.APIURL, &s.DownloadURL, &s.UploadURL, &s.EventSourceURL} {
 		if r, err := url.Parse(*u); err == nil && *u != "" {
 			*u = base.ResolveReference(r).String()
 		}
@@ -106,7 +119,9 @@ func (p *jmapProvider) call(ctx context.Context, using []string, calls ...invoca
 	if err != nil {
 		return nil, err
 	}
-	p.auth(req)
+	if err := p.auth(req); err != nil {
+		return nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	res, err := p.http.Do(req)
 	if err != nil {
@@ -282,6 +297,12 @@ func (e *jmapEmail) summary() Summary {
 		s.MailboxID = id
 		break
 	}
+	s.Keywords = []string{}
+	for k, on := range e.Keywords {
+		if on && !strings.HasPrefix(k, "$") {
+			s.Keywords = append(s.Keywords, strings.ToLower(k))
+		}
+	}
 	if len(e.MessageID) > 0 {
 		s.MessageID = e.MessageID[0]
 	}
@@ -325,6 +346,9 @@ func (p *jmapProvider) Query(ctx context.Context, q Query) (Page, error) {
 	}
 	if q.HasAttachment {
 		conds = append(conds, map[string]any{"hasAttachment": true})
+	}
+	if q.Keyword != "" {
+		conds = append(conds, map[string]any{"hasKeyword": q.Keyword})
 	}
 	if !q.Since.IsZero() {
 		conds = append(conds, map[string]any{"after": q.Since.UTC().Format(time.RFC3339)})
@@ -464,7 +488,9 @@ func (p *jmapProvider) Attachment(ctx context.Context, id, attID string) (Attach
 	if err != nil {
 		return Attachment{}, nil, err
 	}
-	p.auth(req)
+	if err := p.auth(req); err != nil {
+		return Attachment{}, nil, err
+	}
 	res, err := p.http.Do(req)
 	if err != nil {
 		return Attachment{}, nil, err
@@ -533,16 +559,12 @@ func (p *jmapProvider) Destroy(ctx context.Context, ids []string) error {
 	return p.set(ctx, map[string]any{"destroy": ids})
 }
 
-func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
-	acc, err := p.accountID(ctx)
-	if err != nil {
-		return err
-	}
+// roleBoxes finds the account's Drafts and Sent mailboxes.
+func (p *jmapProvider) roleBoxes(ctx context.Context) (drafts, sent string, err error) {
 	boxes, err := p.mailboxes(ctx)
 	if err != nil {
-		return err
+		return "", "", err
 	}
-	var drafts, sent string
 	for _, b := range boxes {
 		switch b.Role {
 		case RoleDrafts:
@@ -552,28 +574,49 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 		}
 	}
 	if drafts == "" {
-		return errors.New("mail: this account has no Drafts mailbox to send from")
+		return "", "", errors.New("mail: this account has no Drafts mailbox")
 	}
-	res, err := p.call(ctx, []string{capSubmission}, invocation{"Identity/get", map[string]any{"accountId": acc}, "i"})
+	return drafts, sent, nil
+}
+
+// upload sends a file to the server's blob store and returns its ID.
+func (p *jmapProvider) upload(ctx context.Context, f File) (string, error) {
+	s, err := p.getSession(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
-	var ir struct {
-		List []struct {
-			ID    string `json:"id"`
-			Email string `json:"email"`
-		} `json:"list"`
+	u := strings.ReplaceAll(s.UploadURL, "{accountId}", url.PathEscape(s.account))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, bytes.NewReader(f.Data))
+	if err != nil {
+		return "", err
 	}
-	_ = json.Unmarshal(res["i"], &ir)
-	identity := ""
-	for _, i := range ir.List {
-		if strings.EqualFold(i.Email, m.From.Email) || identity == "" {
-			identity = i.ID
-		}
+	if err := p.auth(req); err != nil {
+		return "", err
 	}
-	if identity == "" {
-		return errors.New("mail: this account has no identity to send as")
+	typ := f.Type
+	if typ == "" {
+		typ = "application/octet-stream"
 	}
+	req.Header.Set("Content-Type", typ)
+	res, err := p.http.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode/100 != 2 {
+		return "", fmt.Errorf("mail: uploading %s: %s", f.Name, res.Status)
+	}
+	var out struct {
+		BlobID string `json:"blobId"`
+	}
+	if err := json.NewDecoder(limited(res.Body, 1<<20)).Decode(&out); err != nil {
+		return "", err
+	}
+	return out.BlobID, nil
+}
+
+// email turns an outgoing message into a JMAP Email to create in drafts.
+func (p *jmapProvider) email(ctx context.Context, m Outgoing, drafts string) (map[string]any, error) {
 	jm := func(list []Address) []jmapAddr {
 		out := []jmapAddr{}
 		for _, a := range list {
@@ -601,6 +644,53 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 	if len(m.References) > 0 {
 		email["references"] = m.References
 	}
+	var atts []any
+	for _, f := range m.Attachments {
+		blob, err := p.upload(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		atts = append(atts, map[string]any{"blobId": blob, "type": f.Type, "name": f.Name, "disposition": "attachment"})
+	}
+	if len(atts) > 0 {
+		email["attachments"] = atts
+	}
+	return email, nil
+}
+
+func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
+	acc, err := p.accountID(ctx)
+	if err != nil {
+		return err
+	}
+	drafts, sent, err := p.roleBoxes(ctx)
+	if err != nil {
+		return err
+	}
+	res, err := p.call(ctx, []string{capSubmission}, invocation{"Identity/get", map[string]any{"accountId": acc}, "i"})
+	if err != nil {
+		return err
+	}
+	var ir struct {
+		List []struct {
+			ID    string `json:"id"`
+			Email string `json:"email"`
+		} `json:"list"`
+	}
+	_ = json.Unmarshal(res["i"], &ir)
+	identity := ""
+	for _, i := range ir.List {
+		if strings.EqualFold(i.Email, m.From.Email) || identity == "" {
+			identity = i.ID
+		}
+	}
+	if identity == "" {
+		return errors.New("mail: this account has no identity to send as")
+	}
+	email, err := p.email(ctx, m, drafts)
+	if err != nil {
+		return err
+	}
 	onSuccess := map[string]any{"keywords/$draft": nil, "mailboxIds/" + drafts: nil}
 	if sent != "" {
 		onSuccess["mailboxIds/"+sent] = true
@@ -616,14 +706,136 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 	if err != nil {
 		return err
 	}
-	var sr struct {
-		NotCreated map[string]json.RawMessage `json:"notCreated"`
-	}
 	for _, id := range []string{"e", "s"} {
+		var sr struct {
+			NotCreated map[string]json.RawMessage `json:"notCreated"`
+		}
 		_ = json.Unmarshal(res[id], &sr)
 		for _, e := range sr.NotCreated {
 			return fmt.Errorf("mail: JMAP couldn't send: %s", e)
 		}
+	}
+	return nil
+}
+
+func (p *jmapProvider) SaveDraft(ctx context.Context, m Outgoing, replace string) (string, error) {
+	acc, err := p.accountID(ctx)
+	if err != nil {
+		return "", err
+	}
+	drafts, _, err := p.roleBoxes(ctx)
+	if err != nil {
+		return "", err
+	}
+	email, err := p.email(ctx, m, drafts)
+	if err != nil {
+		return "", err
+	}
+	args := map[string]any{"accountId": acc, "create": map[string]any{"d": email}}
+	if replace != "" {
+		args["destroy"] = []string{replace}
+	}
+	res, err := p.call(ctx, nil, invocation{"Email/set", args, "s"})
+	if err != nil {
+		return "", err
+	}
+	var sr struct {
+		Created    map[string]struct{ ID string } `json:"created"`
+		NotCreated map[string]json.RawMessage      `json:"notCreated"`
+	}
+	_ = json.Unmarshal(res["s"], &sr)
+	for _, e := range sr.NotCreated {
+		return "", fmt.Errorf("mail: JMAP couldn't save the draft: %s", e)
+	}
+	return sr.Created["d"].ID, nil
+}
+
+func (p *jmapProvider) SetKeywords(ctx context.Context, ids []string, add, remove []string) error {
+	update := map[string]any{}
+	for _, id := range ids {
+		patch := map[string]any{}
+		for _, k := range add {
+			patch["keywords/"+k] = true
+		}
+		for _, k := range remove {
+			patch["keywords/"+k] = nil
+		}
+		update[id] = patch
+	}
+	return p.set(ctx, map[string]any{"update": update})
+}
+
+func (p *jmapProvider) EnsureMailbox(ctx context.Context, name string) (string, error) {
+	boxes, err := p.mailboxes(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, b := range boxes {
+		if strings.EqualFold(b.Name, name) {
+			return b.ID, nil
+		}
+	}
+	acc, err := p.accountID(ctx)
+	if err != nil {
+		return "", err
+	}
+	res, err := p.call(ctx, nil, invocation{"Mailbox/set", map[string]any{"accountId": acc, "create": map[string]any{"m": map[string]any{"name": name}}}, "s"})
+	if err != nil {
+		return "", err
+	}
+	var sr struct {
+		Created map[string]struct{ ID string } `json:"created"`
+	}
+	_ = json.Unmarshal(res["s"], &sr)
+	if id := sr.Created["m"].ID; id != "" {
+		return id, nil
+	}
+	return "", fmt.Errorf("mail: JMAP couldn't create the %s mailbox", name)
+}
+
+// Watch reads the server's event stream (RFC 8620 §7.3): it sends a
+// "state" event whenever anything in the account changes.
+func (p *jmapProvider) Watch(ctx context.Context, changed func()) error {
+	s, err := p.getSession(ctx)
+	if err != nil {
+		return err
+	}
+	if s.EventSourceURL == "" {
+		return ErrUnsupported
+	}
+	u := strings.NewReplacer("{types}", "Email,Mailbox", "{closeafter}", "no", "{ping}", "60").Replace(s.EventSourceURL)
+	stream := &http.Client{Transport: p.http.Transport} // no overall timeout: the stream stays open
+	backoff := 5 * time.Second
+	for ctx.Err() == nil {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+		if err != nil {
+			return err
+		}
+		if err := p.auth(req); err != nil {
+			return err
+		}
+		req.Header.Set("Accept", "text/event-stream")
+		res, err := stream.Do(req)
+		if err == nil && res.StatusCode == http.StatusOK {
+			backoff = 5 * time.Second
+			sc := bufio.NewScanner(res.Body)
+			for sc.Scan() {
+				if strings.HasPrefix(sc.Text(), "event: state") || strings.HasPrefix(sc.Text(), "event:state") {
+					changed()
+				}
+			}
+			res.Body.Close()
+		} else if res != nil {
+			res.Body.Close()
+			if res.StatusCode == http.StatusUnauthorized {
+				return ErrAuth
+			}
+		}
+		select {
+		case <-ctx.Done():
+		case <-time.After(backoff):
+		}
+		backoff = min(backoff*2, 5*time.Minute)
 	}
 	return nil
 }

@@ -80,6 +80,8 @@
 <div class="sections">
 	<Card title="Connected" level={2}>
 		{#if f?.done === 'connected'}<Alert tone="success" live>Connected {f.email}. <a href="/mail">Open your mail</a></Alert>{/if}
+		{#if data.connected}<Alert tone="success" live>Connected {data.connected}. <a href="/mail">Open your mail</a></Alert>{/if}
+		{#if data.error}<Alert tone="danger" live>{data.error}</Alert>{/if}
 		{#if f?.done === 'removed'}<Alert tone="success" live>Disconnected. Its mail stays on the server.</Alert>{/if}
 		{#if data.accounts.length}
 			<ul class="accounts">
@@ -88,10 +90,12 @@
 						<span class="dot" style:background={a.color}></span>
 						<span class="who"><b>{a.displayName || a.email}</b>{#if a.displayName}<span>{a.email}</span>{/if}</span>
 						<Badge>{a.protocol.toUpperCase()}</Badge>
-						<form method="POST" action="?/remove" use:enhance>
-							<input type="hidden" name="id" value={a.id} />
-							<Button type="submit" variant="ghost" size="sm">Disconnect</Button>
-						</form>
+						{#if !data.direct}
+							<form method="POST" action="?/remove" use:enhance>
+								<input type="hidden" name="id" value={a.id} />
+								<Button type="submit" variant="ghost" size="sm">Disconnect</Button>
+							</form>
+						{/if}
 					</li>
 				{/each}
 			</ul>
@@ -100,7 +104,16 @@
 		{/if}
 	</Card>
 
+	{#if data.direct}
+		<p class="muted">This Petrel reads the mailbox you signed in with. Its password is kept, encrypted, only until you sign out.</p>
+	{:else}
 	<Card title="Connect a mailbox" level={2}>
+		{#if data.oauth.length}
+			<div class="row oauth">
+				{#each data.oauth as p (p.name)}<Button href="/api/mail/oauth/start?provider={p.name}" variant="secondary">Connect {p.label}</Button>{/each}
+			</div>
+			<p class="hint">Or any other mailbox with its address and password:</p>
+		{/if}
 		{#if step === 'email'}
 			<form class="grid" onsubmit={find}>
 				<label>Email address<input type="email" bind:value={email} required autocomplete="email" spellcheck="false" placeholder="you@example.com" /></label>
@@ -181,6 +194,7 @@
 			</form>
 		{/if}
 	</Card>
+	{/if}
 </div>
 
 <style>
@@ -202,6 +216,7 @@
 	input:focus, select:focus { outline: 2px solid var(--tern-ring); outline-offset: 1px; }
 	.hint { margin: -0.25rem 0 0; color: var(--tern-muted); font-size: 0.85rem; }
 	.row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+	.oauth { margin-bottom: 0.75rem; }
 	.toggle { justify-self: start; border: 0; background: none; color: var(--tern-accent); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
 	.advanced { display: grid; gap: 0.875rem; }
 	.advanced[hidden] { display: none; }

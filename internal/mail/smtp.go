@@ -14,7 +14,8 @@ import (
 
 // sendSMTP submits a message through the account's SMTP server and returns
 // the raw message, to file in the Sent mailbox.
-func sendSMTP(ctx context.Context, s Server, c Credentials, allowPrivate bool, m Outgoing) ([]byte, error) {
+func sendSMTP(ctx context.Context, s Server, c *Credentials, o Options, m Outgoing) ([]byte, error) {
+	allowPrivate := o.AllowPrivate
 	raw, _, err := build(m, domainOf(m.From.Email))
 	if err != nil {
 		return nil, err
@@ -38,8 +39,16 @@ func sendSMTP(ctx context.Context, s Server, c Credentials, allowPrivate bool, m
 	if err := client.Hello("petrel.local"); err != nil {
 		return nil, err
 	}
-	if ok, _ := client.Extension("AUTH"); ok && c.Password != "" {
-		if err := client.Auth(sasl.NewPlainClient("", c.Username, c.Password)); err != nil {
+	if ok, _ := client.Extension("AUTH"); ok && (c.Password != "" || c.OAuth != nil) {
+		var auth sasl.Client = sasl.NewPlainClient("", c.Username, c.Password)
+		if c.OAuth != nil {
+			tok, err := token(ctx, c, o)
+			if err != nil {
+				return nil, err
+			}
+			auth = xoauth2{user: c.Username, token: tok}
+		}
+		if err := client.Auth(auth); err != nil {
 			var se *smtp.SMTPError
 			if errors.As(err, &se) && se.Code == 535 {
 				return nil, ErrAuth

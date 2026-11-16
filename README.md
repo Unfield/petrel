@@ -2,7 +2,7 @@
 <h1 align="center">Petrel</h1>
 <p align="center">Modern, open-source webmail. JMAP, IMAP, POP3 and SMTP, in one fast inbox you can self-host.</p>
 
-> **Status: early, but it reads and sends real mail.** Connect IMAP, JMAP or POP3 mailboxes and use them in a three-pane mail app: threads, search, flags, archive and delete with undo, compose and reply, and live updates. See [what's missing](#not-yet) before you rely on it.
+> **Status: feature-complete first version.** Petrel reads and sends real mail over JMAP, IMAP and POP3, with drafts, attachments, labels, snooze, address suggestions, live updates, OAuth for Gmail and Outlook, and two sign-in modes. It's young: try it with the dev mail server first, and report what breaks.
 
 ## Goals
 
@@ -104,18 +104,56 @@ mockup/              the clickable UI prototype
 docs/                design notes
 ```
 
-## Not yet
+## Features
 
-These are planned but not built yet:
-- **Direct sign-in mode:** signing in with your mailbox credentials.
-- **Attachments when composing.**
-- **Drafts on the server.** Closed drafts are kept on the device for now.
-- **OAuth for Gmail and Outlook.** They need app passwords until then.
-- **Contacts and address autocomplete.**
-- **Labels and snooze.**
-- **Push for JMAP.** It polls every 45 seconds instead.
-- **POP3 over STARTTLS.** Use port 995.
-- **Settings saved per user.** They're per browser for now.
+- **Protocols:**
+  - **IMAP:** with IDLE push.
+  - **JMAP:** with EventSource push and EmailSubmission.
+  - **POP3:** over TLS or STARTTLS, with flags kept by Petrel.
+  - **SMTP submission.**
+  - **OAuth:** XOAUTH2 for Gmail and Outlook.
+- **Reading:**
+  - unified inbox and conversations
+  - search with filters
+  - sanitized HTML with remote images blocked
+  - attachments and inline images
+- **Writing:**
+  - rich text, attachments (picker, drag and drop, paste), address suggestions
+  - reply, reply all, forward (forward keeps the attachments)
+  - drafts that save to the server as you type
+  - undo send
+- **Organizing:**
+  - archive, delete and spam with undo; move to any folder
+  - star; labels, stored as IMAP and JMAP keywords
+  - snooze: messages come back to the inbox, unread, on time
+- **Yours:**
+  - light, dark and system mode; four themes; accent colors; three densities; three layouts
+  - English and German, plus a mirrored right-to-left layout
+  - preferences saved to your account
+- **Sign-in:**
+  - **Petrel accounts** (default): passwords, passkeys, two-step, GitHub or Google sign-in.
+  - **Direct mode:** sign in with the mailbox itself.
+
+### Direct sign-in
+
+Set `PETREL_AUTH_MODE=direct` and list your servers in `PETREL_DIRECT_SERVERS` (JSON, or `@path/to/file.json`). Domain `*` matches any address:
+
+```json
+[{ "domain": "example.com", "protocol": "imap",
+   "incoming": { "host": "imap.example.com", "port": 993, "security": "tls" },
+   "smtp": { "host": "smtp.example.com", "port": 587, "security": "starttls" } }]
+```
+
+People then sign in with their email address and its password. Petrel keeps the password, encrypted, only until they sign out.
+
+### Gmail and Outlook
+
+Register an OAuth app with Google or Microsoft and set `PETREL_GOOGLE_CLIENT_ID` / `PETREL_GOOGLE_CLIENT_SECRET` or `PETREL_MICROSOFT_CLIENT_ID` / `PETREL_MICROSOFT_CLIENT_SECRET`. The redirect URL is `<BASE_URL>/api/mail/oauth/callback`. **Connect Gmail** and **Connect Outlook** buttons then appear in Settings → Mailboxes.
+
+## Known gaps
+
+- **JMAP:** built to RFC 8620/8621 but only tested by its types so far. IMAP, POP3 and SMTP have integration tests against real servers in memory.
+- **Contacts:** there's no address book yet beyond suggestions learned from your mail.
 
 ## Contributing
 

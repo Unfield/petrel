@@ -30,6 +30,7 @@ export type Summary = {
 	flagged: boolean;
 	answered: boolean;
 	hasAttachment: boolean;
+	keywords: string[];
 };
 
 export type Attachment = { id: string; name: string; type: string; size: number; cid?: string; inline: boolean; url: string };
@@ -56,7 +57,14 @@ export type Prefs = {
 	listH: number;
 	rail: boolean;
 	images: string[]; // senders whose images always show
+	labels: Label[];
 };
+
+export type Label = { name: string; color: string };
+
+/** An attachment in the compose window: uploading, uploaded, or a part of
+ * another message (forwarding, or reopening a draft). */
+export type OutFile = { key: number; name: string; size: number; type: string; upload?: string; message?: string; part?: string; progress?: number; error?: string };
 
 export type Compose = {
 	key: number;
@@ -67,6 +75,8 @@ export type Compose = {
 	subject: string;
 	html: string;
 	replyTo?: string;
+	draftId?: string;
+	attachments: OutFile[];
 	min: boolean;
 	max: boolean;
 	showCc: boolean;

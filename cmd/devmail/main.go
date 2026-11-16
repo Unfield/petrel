@@ -3,6 +3,8 @@
 //
 //	go run ./cmd/devmail
 //
+// POP3 serves the same inboxes on 127.0.0.1:1110.
+//
 // Then connect a mailbox in Petrel (with PETREL_ALLOW_PRIVATE_HOSTS=true)
 // as sam@petrel.test, password "petrel", IMAP 127.0.0.1:1143 and SMTP
 // 127.0.0.1:1587, both unencrypted. Mail sent to either sample address
@@ -17,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"regexp"
 	"strings"
 	"time"
@@ -26,6 +29,8 @@ import (
 	"github.com/emersion/go-imap/v2/imapserver/imapmemserver"
 	gomail "github.com/emersion/go-message/mail"
 	"github.com/emersion/go-smtp"
+
+	"petrel/internal/devpop3"
 )
 
 var users = map[string]*imapmemserver.User{}
@@ -33,6 +38,7 @@ var users = map[string]*imapmemserver.User{}
 func main() {
 	imapAddr := flag.String("imap", "127.0.0.1:1143", "IMAP address")
 	smtpAddr := flag.String("smtp", "127.0.0.1:1587", "SMTP address")
+	pop3Addr := flag.String("pop3", "127.0.0.1:1110", "POP3 address (serves the IMAP inboxes)")
 	drip := flag.Duration("drip", time.Minute, "deliver a new sample message after this long (0 to turn off)")
 	flag.Parse()
 
@@ -56,7 +62,16 @@ func main() {
 		Caps:         imap.CapSet{imap.CapIMAP4rev1: {}, imap.CapIMAP4rev2: {}},
 		InsecureAuth: true,
 	})
-	go func() { log.Fatal(srv.ListenAndServe(*imapAddr)) }()
+	imapLn, err := net.Listen("tcp", *imapAddr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() { log.Fatal(srv.Serve(imapLn)) }()
+	pop3Ln, err := net.Listen("tcp", *pop3Addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() { log.Fatal(devpop3.Serve(pop3Ln, *imapAddr)) }()
 
 	s := smtp.NewServer(backend{})
 	s.Addr, s.Domain, s.AllowInsecureAuth = *smtpAddr, "localhost", true
@@ -72,7 +87,7 @@ func main() {
 			log.Print("devmail: delivered a new message to sam.taylor@northwind.test")
 		}()
 	}
-	log.Printf("devmail: IMAP on %s, SMTP on %s. Sign in as sam@petrel.test or sam.taylor@northwind.test, password \"petrel\"", *imapAddr, *smtpAddr)
+	log.Printf("devmail: IMAP on %s, POP3 on %s, SMTP on %s. Sign in as sam@petrel.test or sam.taylor@northwind.test, password \"petrel\"", *imapAddr, *pop3Addr, *smtpAddr)
 	select {}
 }
 

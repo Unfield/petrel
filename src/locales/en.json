@@ -95,7 +95,15 @@
 			"mailboxes": "Manage mailboxes",
 			"download": "Download",
 			"signOut": "Sign out",
-			"account": "Account settings"
+			"account": "Account settings",
+			"label": "Labels",
+			"snooze": "Snooze",
+			"newLabel": "New label…",
+			"later": "Later today",
+			"tomorrow": "Tomorrow",
+			"weekend": "This weekend",
+			"nextWeek": "Next week",
+			"pick": "Pick a date & time"
 		},
 		"t": {
 			"archived": "{n, plural, one {Conversation archived} other {# conversations archived}}",
@@ -112,7 +120,11 @@
 			"upToDate": "You’re up to date",
 			"error": "Something went wrong: {x}",
 			"needTo": "Add at least one recipient",
-			"attachSoon": "Attachments are coming soon"
+			"attachSoon": "Attachments are coming soon",
+			"snoozed": "{n, plural, one {Snoozed until {when}} other {# snoozed until {when}}}",
+			"draftSaved": "Draft saved",
+			"uploadFailed": "Couldn’t attach {x}: {y}",
+			"tooBig": "{x} is over 25 MB"
 		},
 		"undo": "Undo",
 		"empty": {
@@ -155,7 +167,9 @@
 			"list": "Bulleted list",
 			"link": "Insert link",
 			"attach": "Attach files",
-			"ccBcc": "Cc/Bcc"
+			"ccBcc": "Cc/Bcc",
+			"attachDrop": "Drop files to attach",
+			"uploading": "Uploading…"
 		},
 		"s": {
 			"title": "Settings",
@@ -183,7 +197,11 @@
 			"rtlSub": "Preview for right-to-left languages like Arabic and Hebrew",
 			"reset": "Reset",
 			"saved": "Saved in this browser.",
-			"contrast": "Contrast"
+			"contrast": "Contrast",
+			"labels": "Labels",
+			"labelsSub": "Labels sync to your mail server as keywords.",
+			"addLabel": "Add label",
+			"remove": "Remove"
 		},
 		"p": {
 			"placeholder": "Type a command…",
@@ -226,6 +244,8 @@
 			"unread": "Mark as unread",
 			"send": "Send (in compose)",
 			"close": "Close / go back"
-		}
+		},
+		"snoozed": "Snoozed",
+		"labels": "Labels"
 	}
 }

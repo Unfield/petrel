@@ -105,6 +105,15 @@
 		div.addEventListener('pointerup', up);
 	}
 
+	const closeMenus = () => window.dispatchEvent(new CustomEvent('petrel:closemenus'));
+	// A click outside a menu closes it.
+	function clicked(e: MouseEvent) {
+		if (!(e.target as HTMLElement).closest?.('.pop-wrap')) {
+			closeMenus();
+			userMenu = false;
+		}
+	}
+
 	function scrollToCursor(id?: string) {
 		if (!id) return;
 		requestAnimationFrame(() => document.querySelector(`.row[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' }));
@@ -118,6 +127,8 @@
 			return;
 		}
 		if (e.key === 'Escape') {
+			// An open menu closes first.
+			if (document.querySelector('.pop-wrap .pop')) return closeMenus();
 			if (store.ui.help) return void (store.ui.help = false);
 			if (store.ui.palette) return void (store.ui.palette = false);
 			if (store.ui.settings) return void (store.ui.settings = false);
@@ -165,7 +176,7 @@
 	}
 </script>
 
-<svelte:window onkeydown={keydown} bind:innerWidth={width} />
+<svelte:window onkeydown={keydown} onclick={clicked} bind:innerWidth={width} />
 
 <div
 	class="pm app"

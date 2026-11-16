@@ -28,6 +28,9 @@ type App struct {
 	// Providers are OAuth's providers, for the sign-in page's buttons.
 	Providers []Provider
 	Mail      *MailAccounts
+
+	direct []DirectServer
+	oauth  map[string]*MailProvider
 }
 
 // Provider is a sign-in button.
@@ -68,7 +71,21 @@ func Open(logger *slog.Logger) (*App, error) {
 	// PETREL_ALLOW_PRIVATE_HOSTS lets mailboxes on private addresses and any
 	// port connect: for local test servers, never on a public instance.
 	allowPrivate := os.Getenv("PETREL_ALLOW_PRIVATE_HOSTS") == "true"
-	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate)}
+	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate), oauth: mailProviders()}
+	a.Mail.oauth = a.oauth
+	if a.direct, err = loadDirect(); err != nil {
+		return nil, err
+	}
+	// Snoozed mail wakes on time; unsent uploads go after a day.
+	if err := q.Schedule("wake-snoozed", "@every 1m", a.Mail.Wake); err != nil {
+		return nil, err
+	}
+	if err := q.Schedule("drop-uploads", "@every 1h", func(ctx context.Context) error {
+		a.Mail.DropUploads(ctx, 0, nil)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 	if err := a.setUpOAuth(); err != nil {
 		return nil, err
 	}

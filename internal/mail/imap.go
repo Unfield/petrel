@@ -57,7 +57,15 @@ func (p *imapProvider) dialLogin(ctx context.Context, opts *imapclient.Options) 
 		cl.Close()
 		return nil, err
 	}
-	if err := cl.Login(p.c.Username, p.c.Password).Wait(); err != nil {
+	if p.c.OAuth != nil {
+		var tok string
+		if tok, err = token(ctx, &p.c, p.o); err == nil {
+			err = cl.Authenticate(xoauth2{user: p.c.Username, token: tok})
+		}
+	} else {
+		err = cl.Login(p.c.Username, p.c.Password).Wait()
+	}
+	if err != nil {
 		cl.Close()
 		var ie *imap.Error
 		if errors.As(err, &ie) {
@@ -323,6 +331,9 @@ func (p *imapProvider) queryBox(cl *imapclient.Client, name string, q Query, n i
 	if q.Flagged {
 		crit.Flag = append(crit.Flag, imap.FlagFlagged)
 	}
+	if q.Keyword != "" {
+		crit.Flag = append(crit.Flag, imap.Flag(q.Keyword))
+	}
 	if !q.Since.IsZero() {
 		crit.Since = q.Since
 	}
@@ -400,6 +411,7 @@ func (p *imapProvider) summary(box string, m *imapclient.FetchMessageBuffer, pr 
 	if s.ThreadID == "" {
 		s.ThreadID = s.ID
 	}
+	s.Keywords = []string{}
 	for _, f := range m.Flags {
 		switch f {
 		case imap.FlagSeen:
@@ -408,6 +420,10 @@ func (p *imapProvider) summary(box string, m *imapclient.FetchMessageBuffer, pr 
 			s.Flagged = true
 		case imap.FlagAnswered:
 			s.Answered = true
+		default:
+			if k := string(f); !strings.HasPrefix(k, "\\") && !strings.HasPrefix(k, "$") {
+				s.Keywords = append(s.Keywords, strings.ToLower(k))
+			}
 		}
 	}
 	return s
@@ -615,7 +631,7 @@ func (p *imapProvider) Destroy(ctx context.Context, ids []string) error {
 }
 
 func (p *imapProvider) Send(ctx context.Context, m Outgoing) error {
-	raw, err := sendSMTP(ctx, p.s.SMTP, p.c, p.o.AllowPrivate, m)
+	raw, err := sendSMTP(ctx, p.s.SMTP, &p.c, p.o, m)
 	if err != nil {
 		return err
 	}
@@ -644,6 +660,102 @@ func (p *imapProvider) Send(ctx context.Context, m Outgoing) error {
 		return err
 	})
 	return nil
+}
+
+func (p *imapProvider) SaveDraft(ctx context.Context, m Outgoing, replace string) (string, error) {
+	raw, _, err := build(m, domainOf(m.From.Email))
+	if err != nil {
+		return "", err
+	}
+	var id string
+	err = p.do(ctx, func(cl *imapclient.Client) error {
+		_, byRole, err := p.listBoxes(cl)
+		if err != nil {
+			return err
+		}
+		drafts, ok := byRole[RoleDrafts]
+		if !ok {
+			drafts = "Drafts"
+			if err := cl.Create(drafts, nil).Wait(); err != nil {
+				return err
+			}
+		}
+		cmd := cl.Append(drafts, int64(len(raw)), &imap.AppendOptions{Flags: []imap.Flag{imap.FlagDraft, imap.FlagSeen}, Time: time.Now()})
+		if _, err := cmd.Write(raw); err != nil {
+			return err
+		}
+		if err := cmd.Close(); err != nil {
+			return err
+		}
+		data, err := cmd.Wait()
+		if err != nil {
+			return err
+		}
+		if data != nil && data.UID != 0 {
+			id = encID(drafts, data.UIDValidity, data.UID)
+		}
+		if replace != "" {
+			if box, _, uid, err := decID(replace); err == nil {
+				if err := p.selectBox(cl, box); err == nil {
+					_ = p.expunge(cl, imap.UIDSetNum(uid))
+				}
+			}
+		}
+		return nil
+	})
+	return id, err
+}
+
+func (p *imapProvider) SetKeywords(ctx context.Context, ids []string, add, remove []string) error {
+	return p.do(ctx, func(cl *imapclient.Client) error {
+		for box, uids := range p.byBox(ids) {
+			if err := p.selectBox(cl, box); err != nil {
+				return err
+			}
+			for _, change := range []struct {
+				op    imap.StoreFlagsOp
+				words []string
+			}{{imap.StoreFlagsAdd, add}, {imap.StoreFlagsDel, remove}} {
+				if len(change.words) == 0 {
+					continue
+				}
+				flags := make([]imap.Flag, 0, len(change.words))
+				for _, w := range change.words {
+					if w == "$answered" { // JMAP's name for a system flag
+						flags = append(flags, imap.FlagAnswered)
+						continue
+					}
+					flags = append(flags, imap.Flag(w))
+				}
+				if err := cl.Store(imap.UIDSetNum(uids...), &imap.StoreFlags{Op: change.op, Silent: true, Flags: flags}, nil).Close(); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (p *imapProvider) EnsureMailbox(ctx context.Context, name string) (string, error) {
+	var id string
+	err := p.do(ctx, func(cl *imapclient.Client) error {
+		list, err := cl.List("", "*", nil).Collect()
+		if err != nil {
+			return err
+		}
+		for _, d := range list {
+			if strings.EqualFold(d.Mailbox, name) || strings.EqualFold(leafName(d), name) {
+				id = encBox(d.Mailbox)
+				return nil
+			}
+		}
+		if err := cl.Create(name, nil).Wait(); err != nil {
+			return err
+		}
+		id = encBox(name)
+		return nil
+	})
+	return id, err
 }
 
 func (p *imapProvider) State(ctx context.Context) (state string, err error) {

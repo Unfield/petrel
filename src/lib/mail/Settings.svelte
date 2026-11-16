@@ -84,6 +84,19 @@
 			</button>
 		</div>
 
+		<h3>{t('m.s.labels')}</h3>
+		<div class="s-row">
+			<div class="s-hint" style="margin:0 0 10px">{t('m.s.labelsSub')}</div>
+			{#each store.prefs.labels as l, i (i)}
+				<div class="label-row">
+					<input type="color" value={l.color} onchange={(e) => set('labels', store.prefs.labels.map((x, j) => (j === i ? { ...x, color: e.currentTarget.value } : x)))} aria-label="Color" />
+					<input type="text" value={l.name} onchange={(e) => e.currentTarget.value.trim() && set('labels', store.prefs.labels.map((x, j) => (j === i ? { ...x, name: e.currentTarget.value.trim() } : x)))} />
+					<button class="icon-btn sm" onclick={() => set('labels', store.prefs.labels.filter((_, j) => j !== i))} aria-label={t('m.s.remove')}><Icon name="trash" size={16} /></button>
+				</div>
+			{/each}
+			<button class="btn" onclick={() => set('labels', [...store.prefs.labels, { name: `Label ${store.prefs.labels.length + 1}`, color: '#7c5cff' }])}><Icon name="plus" size={16} />{t('m.s.addLabel')}</button>
+		</div>
+
 		<h3>{t('m.s.language')}</h3>
 		<div class="s-row">
 			<div class="seg" role="radiogroup">

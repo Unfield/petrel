@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { t, type MessageKey } from '@ternkit/tern';
 	import Icon from './Icon.svelte';
+	import LabelMenu from './LabelMenu.svelte';
 	import MessageBody from './MessageBody.svelte';
+	import SnoozeMenu from './SnoozeMenu.svelte';
 	import type { MailStore } from './store.svelte';
 	import type { Summary } from './types';
 	import { display, fmtLong, fmtShort, fmtSize, hue, initials } from './util';
@@ -15,13 +17,21 @@
 	const role = $derived(it?.latest.mailboxRole ?? '');
 	const offList = $derived(store.prefs.layout === 'off' || mobile);
 	let moveOpen = $state(false);
+	let labelOpen = $state(false);
+	let snoozeOpen = $state(false);
+	$effect(() => {
+		const close = () => (moveOpen = labelOpen = snoozeOpen = false);
+		window.addEventListener('petrel:closemenus', close);
+		return () => window.removeEventListener('petrel:closemenus', close);
+	});
+	const keywords = $derived([...new Set(it?.msgs.flatMap((m) => m.keywords) ?? [])]);
 	let scroller = $state<HTMLElement>();
 
 	$effect(() => {
 		// A new conversation starts at the top.
 		void store.openId;
 		scroller?.scrollTo(0, 0);
-		moveOpen = false;
+		moveOpen = labelOpen = snoozeOpen = false;
 	});
 
 	const isOpen = (m: Summary, i: number, n: number) => i === n - 1 || !m.seen || store.expanded.has(m.id);
@@ -74,7 +84,7 @@
 			<button class="tb" onclick={() => (store.setSeen(it.msgs.map((m) => m.id), false), offList && store.close())} title={t('m.a.unread')}><Icon name="mail" /></button>
 			<button class="tb" onclick={() => store.junk(items)} title={role === 'junk' ? t('m.a.notJunk') : t('m.a.junk')}><Icon name="spam" /></button>
 			<div class="pop-wrap">
-				<button class="tb" onclick={() => (moveOpen = !moveOpen)} title={t('m.a.moveTo')} aria-expanded={moveOpen}><Icon name="folder" /></button>
+				<button class="tb" onclick={() => ((moveOpen = !moveOpen), (labelOpen = snoozeOpen = false))} title={t('m.a.moveTo')} aria-expanded={moveOpen}><Icon name="folder" /></button>
 				{#if moveOpen}
 					<div class="pop" role="menu">
 						<div class="pop-title">{t('m.a.moveTo')}</div>
@@ -86,6 +96,16 @@
 					</div>
 				{/if}
 			</div>
+			<div class="pop-wrap">
+				<button class="tb" onclick={() => ((labelOpen = !labelOpen), (moveOpen = snoozeOpen = false))} title={t('m.a.label')} aria-expanded={labelOpen}><Icon name="tag" /></button>
+				{#if labelOpen}<LabelMenu {store} {items} onclose={() => (labelOpen = false)} />{/if}
+			</div>
+			{#if role !== 'snoozed'}
+				<div class="pop-wrap">
+					<button class="tb" onclick={() => ((snoozeOpen = !snoozeOpen), (moveOpen = labelOpen = false))} title={t('m.a.snooze')} aria-expanded={snoozeOpen}><Icon name="clock" /></button>
+					{#if snoozeOpen}<SnoozeMenu {store} {items} onclose={() => (snoozeOpen = false)} />{/if}
+				</div>
+			{/if}
 			<span class="spacer"></span>
 			{#if idx >= 0}
 				<span class="pos">{idx + 1} / {store.items.length}</span>
@@ -99,8 +119,11 @@
 				<div class="subject-line">
 					<div style="flex:1;min-width:0">
 						<h1>{it.latest.subject || t('m.noSubject')}</h1>
-						{#if account && store.accounts.length > 1}
-							<div class="lchips"><span class="lchip" style:--c={account.color}>{account.displayName || account.email}</span></div>
+						{#if (account && store.accounts.length > 1) || keywords.length}
+							<div class="lchips">
+								{#if account && store.accounts.length > 1}<span class="lchip" style:--c={account.color}>{account.displayName || account.email}</span>{/if}
+								{#each keywords as k (k)}<button class="lchip" style:--c={store.labelColor(k)} onclick={() => store.go('label:' + k)}>{store.labelName(k)}</button>{/each}
+							</div>
 						{/if}
 					</div>
 				</div>

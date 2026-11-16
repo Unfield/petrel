@@ -19,6 +19,9 @@ type Page struct {
 }
 
 func Load(ctx *kit.Ctx) (Page, error) {
+	if app.Current.Direct() {
+		return Page{}, kit.Redirect(http.StatusSeeOther, "/login") // people sign in with their mailbox
+	}
 	if accounts.Current(ctx) != nil {
 		return Page{}, kit.Redirect(http.StatusSeeOther, app.SafeNext(ctx.URL().Query().Get("next")))
 	}

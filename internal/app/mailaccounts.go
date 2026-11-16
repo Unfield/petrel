@@ -42,6 +42,8 @@ type MailAccounts struct {
 	// Hub carries Changes, by user ("user:<id>").
 	Hub *realtime.Hub[Change]
 
+	oauth map[string]*MailProvider
+
 	mu        sync.Mutex
 	providers map[int64]*cached
 	watchers  map[int64]*watcher
@@ -198,6 +200,10 @@ func (m *MailAccounts) Provider(ctx context.Context, userID, id int64) (mail.Pro
 	}
 	opts := m.opts
 	opts.Flags = pop3Flags{db: m.db, account: id}
+	if s.creds.OAuth != nil {
+		creds := s.creds
+		opts.Refresh = m.refresher(id, m.oauth, &creds)
+	}
 	p, err := mail.Open(s.settings, s.creds, opts)
 	if err != nil {
 		return nil, nil, err

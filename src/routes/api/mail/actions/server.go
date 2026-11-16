@@ -4,6 +4,8 @@ package actions
 import (
 	"errors"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/Unfield/Tern/kit"
 
@@ -15,15 +17,36 @@ var Access = kit.SignedIn
 
 type In struct {
 	IDs    []string `json:"ids"`
-	Action string   `json:"action" validate:"required,oneof=read|unread|flag|unflag|archive|trash|junk|inbox|move|delete"`
+	Action string   `json:"action" validate:"required,oneof=read|unread|flag|unflag|archive|trash|junk|inbox|move|delete|label|unlabel|snooze"`
 	// Mailbox is the folder to move to, for "move".
 	Mailbox string `json:"mailbox"`
+	// Label is the keyword for "label" and "unlabel".
+	Label string `json:"label"`
+	// Until is when snoozed messages come back, in Unix milliseconds.
+	Until int64 `json:"until"`
 }
 
 type Out struct {
 	Changed int `json:"changed"`
 	// Moved gives messages' new IDs, where moving changed them.
 	Moved map[string]string `json:"moved"`
+}
+
+// labelKeyword turns a label's name into an IMAP/JMAP keyword: lowercase,
+// with only the characters both protocols allow.
+func labelKeyword(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '-', r == '_', r == '.':
+			b.WriteRune(r)
+		case r == ' ':
+			b.WriteRune('-')
+		case r > 127:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func POST(ctx *kit.Ctx, in In) (Out, error) {
@@ -58,6 +81,21 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 			err = p.SetFlags(ctx, ids, nil, &f)
 		case "delete":
 			err = p.Destroy(ctx, ids)
+		case "label", "unlabel":
+			k := labelKeyword(in.Label)
+			if k == "" {
+				return Out{}, kit.Error(http.StatusBadRequest, "Name the label.")
+			}
+			if in.Action == "label" {
+				err = p.SetKeywords(ctx, ids, []string{k}, nil)
+			} else {
+				err = p.SetKeywords(ctx, ids, nil, []string{k})
+			}
+		case "snooze":
+			if in.Until <= time.Now().UnixMilli() {
+				return Out{}, kit.Error(http.StatusBadRequest, "Pick a time in the future.")
+			}
+			moved, err = app.Current.Mail.Snooze(ctx, user, account, ids, time.UnixMilli(in.Until))
 		case "move":
 			dest, box, ok := app.SplitID(in.Mailbox)
 			if !ok || dest != account {
@@ -82,6 +120,9 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 		}
 		if err != nil {
 			return Out{}, app.MailError(err)
+		}
+		if in.Action != "snooze" && in.Action != "label" && in.Action != "unlabel" {
+			app.Current.Mail.Unsnooze(ctx, user, account, ids) // moved by hand: no longer waits
 		}
 		note(account, moved)
 	}

@@ -33,6 +33,12 @@ type Prefs struct {
 	ListH   int      `json:"listH"`
 	Rail    bool     `json:"rail"`
 	Images  []string `json:"images"`
+	Labels  []Label  `json:"labels"`
+}
+
+type Label struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
 type Page struct {
@@ -52,8 +58,14 @@ func oneOf(v string, allowed ...string) string {
 	return allowed[0]
 }
 
-func readPrefs(ctx *kit.Ctx) Prefs {
-	p := Prefs{Threads: true, ListW: 420, ListH: 44, Images: []string{}}
+// readPrefs takes the user's saved preferences, then this browser's
+// cookie for the appearance (the most recent choice on this device).
+func readPrefs(ctx *kit.Ctx, userID int64) Prefs {
+	p := Prefs{Threads: true, ListW: 420, ListH: 44, Images: []string{},
+		Labels: []Label{{"Work", "#3b82f6"}, {"Personal", "#e64980"}}}
+	if saved := app.Current.Mail.Prefs(ctx, userID); saved != "" {
+		_ = json.Unmarshal([]byte(saved), &p)
+	}
 	if c, ok := ctx.Cookie("petrel_prefs"); ok {
 		if raw, err := url.QueryUnescape(c); err == nil {
 			_ = json.Unmarshal([]byte(raw), &p)
@@ -71,6 +83,14 @@ func readPrefs(ctx *kit.Ctx) Prefs {
 	if p.Images == nil {
 		p.Images = []string{}
 	}
+	if p.Labels == nil {
+		p.Labels = []Label{}
+	}
+	for i := range p.Labels {
+		if !hexColor.MatchString(p.Labels[i].Color) {
+			p.Labels[i].Color = "#7d8798"
+		}
+	}
 	return p
 }
 
@@ -80,5 +100,5 @@ func Load(ctx *kit.Ctx) (Page, error) {
 	if err != nil {
 		return Page{}, err
 	}
-	return Page{User: User{Name: u.Name, Email: u.Email}, Accounts: list, Prefs: readPrefs(ctx)}, nil
+	return Page{User: User{Name: u.Name, Email: u.Email}, Accounts: list, Prefs: readPrefs(ctx, u.ID)}, nil
 }
