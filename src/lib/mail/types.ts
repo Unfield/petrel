@@ -12,6 +12,7 @@ export type Account = {
 	color: string;
 	mailboxes: Mailbox[];
 	error?: string;
+	quota?: { used: number; limit: number };
 };
 
 export type Summary = {

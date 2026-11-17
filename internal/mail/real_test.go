@@ -59,6 +59,7 @@ func TestRealServers(t *testing.T) {
 		return p
 	}
 	sam, lena := open(user1), open(user2)
+	checkQuota(t, sam)
 	bad, _ := Open(settings, Credentials{Username: user1, Password: "wrong"}, opts)
 	if _, err := bad.Mailboxes(ctx); err != ErrAuth {
 		t.Errorf("a wrong password: %v", err)

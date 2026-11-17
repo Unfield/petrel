@@ -247,7 +247,10 @@
 			"close": "Schließen / zurück"
 		},
 		"snoozed": "Zurückgestellt",
-		"labels": "Labels"
+		"labels": "Labels",
+		"storage": "{used} von {total} belegt",
+		"storageUsed": "{used} belegt",
+		"storageOf": "Speicher von {email}"
 	},
 	"e": {
 		"auth": "Der Mailserver hat Benutzername oder Passwort abgelehnt. Prüfe sie unter Einstellungen → Postfächer.",
@@ -274,7 +277,8 @@
 		"crossAccount": "Nachrichten können nur innerhalb ihres Kontos verschoben werden.",
 		"noRecipient": "Füge mindestens einen Empfänger hinzu.",
 		"oauthState": "Die Anmeldung hat zu lange gedauert oder kam von woanders. Versuch es noch einmal.",
-		"oauthDenied": "Der Zugriff wurde nicht erlaubt ({error})."
+		"oauthDenied": "Der Zugriff wurde nicht erlaubt ({error}).",
+		"duplicate": "Dieses Postfach ist schon verbunden."
 	},
 	"acc": {
 		"settings": {
@@ -691,6 +695,12 @@
 				"useApp": "Authenticator-App nutzen",
 				"useRecovery": "Wiederherstellungscode nutzen",
 				"verify": "Weiter"
+			},
+			"sidebar": {
+				"label": "Hauptmenü",
+				"open": "Navigation öffnen",
+				"signOut": "Abmelden",
+				"title": "Navigation"
 			}
 		},
 		"validate": {

@@ -268,3 +268,17 @@ func Open(s Settings, c Credentials, o Options) (Provider, error) {
 	}
 	return nil, errors.New("mail: unknown protocol " + string(s.Protocol))
 }
+
+// Quota is how much storage a mailbox uses, in bytes. Limit is 0 when the
+// server reports usage without a limit.
+type Quota struct {
+	Used  int64 `json:"used"`
+	Limit int64 `json:"limit"`
+}
+
+// QuotaProvider is a provider whose server can say how full the mailbox
+// is: IMAP with QUOTA (RFC 9208), JMAP with Quota (RFC 9425). Quota
+// returns ErrUnsupported when the server can't.
+type QuotaProvider interface {
+	Quota(ctx context.Context) (*Quota, error)
+}

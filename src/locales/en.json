@@ -247,7 +247,10 @@
 			"close": "Close / go back"
 		},
 		"snoozed": "Snoozed",
-		"labels": "Labels"
+		"labels": "Labels",
+		"storage": "{used} of {total} used",
+		"storageUsed": "{used} used",
+		"storageOf": "Storage of {email}"
 	},
 	"e": {
 		"auth": "The mail server refused the username or password. Check them in Settings → Mailboxes.",
@@ -274,7 +277,8 @@
 		"crossAccount": "Messages can only move within their account.",
 		"noRecipient": "Add at least one recipient.",
 		"oauthState": "The sign-in took too long or came from elsewhere. Try again.",
-		"oauthDenied": "Access wasn’t granted ({error})."
+		"oauthDenied": "Access wasn’t granted ({error}).",
+		"duplicate": "This mailbox is already connected."
 	},
 	"acc": {
 		"settings": {

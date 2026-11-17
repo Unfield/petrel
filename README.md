@@ -84,6 +84,7 @@ Petrel reads its settings from the environment, and `tern dev` also from a `.env
 | `PETREL_ALLOW_PRIVATE_HOSTS` | `true` lets mailboxes on private addresses and any port connect, for local test servers. Never set it on a public instance |
 | `PETREL_AUTH_MODE`, `PETREL_DIRECT_SERVERS` | sign in with the mailbox itself: see [Direct sign-in](#direct-sign-in) |
 | `PETREL_TEAMS` | `true` shows teams: invitations, roles and a Team page. Off by default; everyone has a team of their own either way |
+| `PETREL_CA_FILE` | a PEM file of extra certificate authorities to trust for mail servers, such as a company's own CA or a local test server's self-signed certificate |
 | `APP_NAME` | the name shown by authenticator apps and passkey prompts |
 
 ## How it works
@@ -143,6 +144,7 @@ docs/                design notes
 - **Yours:**
   - light, dark and system mode; four themes; accent colors; three densities; three layouts
   - English and German, plus a mirrored right-to-left layout
+  - storage used and the quota, from IMAP QUOTA or JMAP Quota
   - preferences saved to your account
 - **Sign-in:**
   - **Petrel accounts** (default): passwords, passkeys, two-step, GitHub or Google sign-in.

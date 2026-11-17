@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '@ternkit/tern';
 	import Icon from './Icon.svelte';
+	import { fmtSize } from './util';
 	import { keywordOf, ROLE_FOLDERS, type MailStore } from './store.svelte';
 
 	let { store }: { store: MailStore } = $props();
@@ -14,6 +15,9 @@
 				(f.id === 'snoozed' ? store.accounts.some((a) => (!acc || a.id === acc.id) && a.mailboxes.some((b) => b.role === 'snoozed')) : !acc || acc.mailboxes.some((b) => b.role === f.id))
 		)
 	);
+	// Storage of the chosen account, or of each one in All inboxes.
+	const quotas = $derived(store.accounts.filter((a) => a.quota && (!acc || a.id === acc.id)));
+	const pct = (q: { used: number; limit: number }) => (q.limit ? Math.min(100, Math.round((q.used / q.limit) * 100)) : 0);
 	const custom = $derived(acc ? acc.mailboxes.filter((b) => !b.role) : []);
 	const count = (role: string) => (role === 'inbox' || role === 'junk' ? store.unread(role) : role === 'drafts' ? draftCount() : 0);
 	function draftCount() {
@@ -81,12 +85,38 @@
 		{/each}
 	{/if}
 
-	<a class="nav-item manage" href="/settings/mailboxes" title={t('m.a.mailboxes')}><Icon name="plus" /><span class="label">{t('m.a.mailboxes')}</span></a>
+	<div class="foot">
+		{#each quotas as a (a.id)}
+			{@const q = a.quota!}
+			<div class="storage" title={a.email}>
+				{#if q.limit}<div class="meter" role="meter" aria-valuenow={pct(q)} aria-valuemin={0} aria-valuemax={100} aria-label={t('m.storageOf', { email: a.email })}><i class:full={pct(q) >= 90} style:width="{pct(q)}%"></i></div>{/if}
+				{q.limit ? t('m.storage', { used: fmtSize(q.used), total: fmtSize(q.limit) }) : t('m.storageUsed', { used: fmtSize(q.used) })}{#if !acc && store.accounts.length > 1}<span class="sub">{a.email}</span>{/if}
+			</div>
+		{/each}
+		<a class="nav-item manage" href="/settings/mailboxes" title={t('m.a.mailboxes')}><Icon name="plus" /><span class="label">{t('m.a.mailboxes')}</span></a>
+	</div>
 </nav>
 
 <style>
-	.manage {
+	.foot {
 		margin-top: auto;
+		padding-top: 12px;
+	}
+	.foot .storage {
+		margin-top: 0;
+		padding-top: 0;
+		padding-bottom: 12px;
+	}
+	.storage .sub {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.meter i.full {
+		background: var(--danger);
+	}
+	.manage {
 		text-decoration: none;
 		color: var(--text-3);
 		font-size: 13px;

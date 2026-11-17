@@ -40,7 +40,8 @@ export function fmtSize(n: number): string {
 	const f = new Intl.NumberFormat(locale(), { maximumFractionDigits: 1 });
 	if (n < 1024) return `${n} B`;
 	if (n < 1024 * 1024) return `${f.format(n / 1024)} KB`;
-	return `${f.format(n / 1024 / 1024)} MB`;
+	if (n < 1024 ** 3) return `${f.format(n / 1024 / 1024)} MB`;
+	return `${f.format(n / 1024 ** 3)} GB`;
 }
 
 export function hue(s: string): number {

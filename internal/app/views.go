@@ -46,6 +46,8 @@ type AccountView struct {
 	MailAccount
 	Mailboxes []MailboxView `json:"mailboxes"`
 	Error     string        `json:"error,omitempty"`
+	// Quota is how full the mailbox is, if its server says.
+	Quota *mail.Quota `json:"quota,omitempty"`
 }
 
 // SummaryView is a message in the list.
@@ -166,6 +168,7 @@ func (m *MailAccounts) Accounts(ctx context.Context, userID int64) ([]AccountVie
 			for _, b := range boxes {
 				out[i].Mailboxes = append(out[i].Mailboxes, MailboxView{ID: GlobalID(a.ID, b.ID), Name: b.Name, Role: b.Role, Total: b.Total, Unread: b.Unread})
 			}
+			out[i].Quota = m.quota(cctx, userID, a.ID)
 		}()
 	}
 	wg.Wait()
@@ -360,4 +363,38 @@ func (m *MailAccounts) Query(ctx context.Context, userID int64, in ListQuery) (L
 		res.Messages = res.Messages[:in.Limit]
 	}
 	return res, nil
+}
+
+// Quotas change slowly: ask each server at most every five minutes.
+var quotaCache = struct {
+	sync.Mutex
+	m map[int64]quotaEntry
+}{m: map[int64]quotaEntry{}}
+
+type quotaEntry struct {
+	q  *mail.Quota
+	at time.Time
+}
+
+func (m *MailAccounts) quota(ctx context.Context, userID, id int64) *mail.Quota {
+	quotaCache.Lock()
+	e, ok := quotaCache.m[id]
+	quotaCache.Unlock()
+	if ok && time.Since(e.at) < 5*time.Minute {
+		return e.q
+	}
+	p, _, err := m.Provider(ctx, userID, id)
+	if err != nil {
+		return nil
+	}
+	var q *mail.Quota
+	if qp, ok := p.(mail.QuotaProvider); ok {
+		if q, err = qp.Quota(ctx); err != nil && !errors.Is(err, mail.ErrUnsupported) {
+			return e.q // a hiccup: keep showing the last answer
+		}
+	}
+	quotaCache.Lock()
+	quotaCache.m[id] = quotaEntry{q: q, at: time.Now()}
+	quotaCache.Unlock()
+	return q
 }

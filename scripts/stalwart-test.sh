@@ -9,6 +9,7 @@
 #
 # PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_POP3=127.0.0.1:2995 PETREL_REAL_SMTP=127.0.0.1:2465
 # also test IMAP, POP3 and SMTP over TLS against it (TestRealServers).
+# Sam has a 100 MB quota, for the storage meter.
 #
 # Remove it with: docker rm -f petrel-stalwart
 set -eu
@@ -36,7 +37,7 @@ A="admin@petrel.test:$ADMIN"
 jmap "$A" '[["x:SystemSettings/set",{"accountId":"b","update":{"singleton":{"services/jmap":{"hostname":"127.0.0.1","cleartext":true}}}},"0"]]' |
 	grep -q '"updated"' || { echo "couldn't set the JMAP address" >&2; exit 1; }
 jmap "$A" "[[\"x:Account/set\",{\"accountId\":\"b\",\"create\":{
-	\"sam\":{\"@type\":\"User\",\"name\":\"sam\",\"domainId\":\"b\",\"description\":\"Sam Taylor\",\"credentials\":{\"0\":{\"@type\":\"Password\",\"secret\":\"$PASS\"}},\"roles\":{\"@type\":\"User\"}},
+	\"sam\":{\"@type\":\"User\",\"name\":\"sam\",\"quotas\":{\"maxDiskQuota\":104857600},\"domainId\":\"b\",\"description\":\"Sam Taylor\",\"credentials\":{\"0\":{\"@type\":\"Password\",\"secret\":\"$PASS\"}},\"roles\":{\"@type\":\"User\"}},
 	\"lena\":{\"@type\":\"User\",\"name\":\"lena\",\"domainId\":\"b\",\"description\":\"Lena Fischer\",\"credentials\":{\"0\":{\"@type\":\"Password\",\"secret\":\"$PASS\"}},\"roles\":{\"@type\":\"User\"}}}},\"0\"]]" >/dev/null
 echo "Administrator: admin@petrel.test / $ADMIN (http://127.0.0.1:8080/admin)"
 docker restart "$NAME" >/dev/null # applies the JMAP address

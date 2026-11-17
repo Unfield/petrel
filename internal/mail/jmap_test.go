@@ -45,6 +45,7 @@ func TestJMAP(t *testing.T) {
 		return p
 	}
 	sam, lena := open(user1), open(user2)
+	checkQuota(t, sam)
 
 	bad, _ := Open(Settings{Protocol: JMAP, JMAPURL: u}, Credentials{Username: user1, Password: "wrong"}, opts)
 	if _, err := bad.Mailboxes(ctx); err != ErrAuth {

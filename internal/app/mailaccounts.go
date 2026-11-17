@@ -68,7 +68,7 @@ func NewMailAccounts(db *sql.DB, logger *slog.Logger, allowPrivate bool) *MailAc
 		db: db, logger: logger, Hub: realtime.NewHub[Change](),
 		providers: map[int64]*cached{}, watchers: map[int64]*watcher{},
 	}
-	m.opts = mail.Options{AllowPrivate: allowPrivate}
+	m.opts = mail.Options{AllowPrivate: allowPrivate, TLS: extraCAs(logger)}
 	go m.closeIdle()
 	return m
 }
@@ -152,7 +152,7 @@ func (m *MailAccounts) Create(ctx context.Context, userID int64, email, name str
 		userID, a.Email, a.DisplayName, a.Protocol, string(settings), sealed.String(secret), a.Color, n, now, now)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			return MailAccount{}, errors.New("This mailbox is already connected.")
+			return MailAccount{}, errors.New(tr(ctx, "e.duplicate"))
 		}
 		return MailAccount{}, err
 	}

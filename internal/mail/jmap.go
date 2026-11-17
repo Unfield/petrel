@@ -47,6 +47,9 @@ const (
 
 func newJMAP(s Settings, c Credentials, o Options) *jmapProvider {
 	h := httpClient(o.AllowPrivate, 60*time.Second)
+	if o.TLS != nil {
+		h.Transport.(*http.Transport).TLSClientConfig = o.TLS.Clone()
+	}
 	if o.Transport != nil {
 		h.Transport = o.Transport
 	}
