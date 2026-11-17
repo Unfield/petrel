@@ -61,7 +61,46 @@
 		saving = false;
 	}
 
+	// ─── OpenPGP ──────────────────────────────────────────
+	let missing = $state<string[]>([]);
+	let checking = $state(false);
+	let needPass = $state(false);
+	let pass = $state('');
+	let keyTimer: ReturnType<typeof setTimeout>;
+	const emailsOf = (s: string) => s.split(/[,;]/).map((x) => (x.match(/<([^>]+)>/)?.[1] ?? x).trim().toLowerCase()).filter((x) => x.includes('@'));
+	const everyone = $derived([...emailsOf(c.to), ...emailsOf(c.cc), ...emailsOf(c.bcc)]);
+	// With encryption on, check (and look up) every recipient's key as the
+	// list changes.
+	$effect(() => {
+		const list = everyone;
+		if (!c.encrypt) return void (missing = []);
+		clearTimeout(keyTimer);
+		keyTimer = setTimeout(async () => {
+			checking = true;
+			try {
+				const has = list.length ? await store.recipientKeys(list) : {};
+				missing = list.filter((e) => !has[e]);
+			} finally {
+				checking = false;
+			}
+		}, 500);
+	});
+	async function unlock() {
+		if (pass && (await store.unlock(pass))) {
+			pass = '';
+			needPass = false;
+		}
+	}
+
 	function send() {
+		if (c.encrypt && (missing.length || checking)) {
+			store.notify(checking ? t('m.pgp.checking') : t('m.pgp.missing', { emails: missing.join(', ') }), undefined, true);
+			return;
+		}
+		if (c.sign && !store.pgp.unlocked) {
+			needPass = true;
+			return;
+		}
 		if (!(c.to + c.cc + c.bcc).trim()) {
 			shake = false;
 			requestAnimationFrame(() => (shake = true));
@@ -334,6 +373,19 @@
 		</div>
 	{/if}
 	{#if dragging}<div class="c-drop"><Icon name="clip" size={22} />{t('m.c.attachDrop')}</div>{/if}
+	{#if c.encrypt || needPass}
+		<div class="pgp-line" class:warn={c.encrypt && missing.length}>
+			{#if needPass}
+				<Icon name="seal" size={15} /><span>{t('m.pgp.unlockToSign')}</span>
+				<input type="password" bind:value={pass} placeholder={t('m.pgp.passphrase')} onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), unlock())} aria-label={t('m.pgp.passphrase')} />
+				<button class="btn sm" onclick={unlock}>{t('m.pgp.unlock')}</button>
+			{:else if missing.length}
+				<Icon name="alert" size={15} /><span>{t('m.pgp.missing', { emails: missing.join(', ') })}</span>
+			{:else}
+				<Icon name="lock" size={15} /><span>{checking ? t('m.pgp.checking') : t('m.pgp.willEncrypt')}</span>
+			{/if}
+		</div>
+	{/if}
 	<footer class="c-foot">
 		<button class="btn primary" onclick={send} title="{mod}+Enter">{t('m.c.send')}</button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('bold')} title={t('m.c.bold')}><Icon name="bold" size={17} /></button>
@@ -341,8 +393,48 @@
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('insertUnorderedList')} title={t('m.c.list')}><Icon name="list" size={17} /></button>
 		<button class="tb" onmousedown={(e) => e.preventDefault()} onclick={() => fmt('createLink')} title={t('m.c.link')}><Icon name="link" size={17} /></button>
 		<button class="tb" onclick={() => fileInput?.click()} title={t('m.c.attach')}><Icon name="clip" size={17} /></button>
+		{#if store.pgp.keys.length}
+			<span class="tb-sep"></span>
+			<button class="tb" class:on={c.encrypt} aria-pressed={!!c.encrypt} onclick={() => update({ encrypt: !c.encrypt })} title={c.encrypt ? t('m.pgp.encryptOn') : t('m.pgp.encrypt')}><Icon name="lock" size={17} /></button>
+			<button class="tb" class:on={c.sign} aria-pressed={!!c.sign} onclick={() => update({ sign: !c.sign })} title={c.sign ? t('m.pgp.signOn') : t('m.pgp.sign')}><Icon name="seal" size={17} /></button>
+		{/if}
 		<input type="file" multiple hidden bind:this={fileInput} onchange={(e) => (attach(e.currentTarget.files), (e.currentTarget.value = ''))} />
 		<span class="c-saved">{savedAt ? t('m.c.saved') : ''}</span><span class="spacer"></span>
 		<button class="tb" onclick={discard} title={t('m.c.discard')}><Icon name="trash" size={17} /></button>
 	</footer>
 </div>
+
+<style>
+	.pgp-line {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 14px;
+		font-size: 12.5px;
+		color: var(--text-2);
+		background: color-mix(in oklab, var(--accent) 10%, transparent);
+		border-top: 1px solid var(--border);
+	}
+	.pgp-line.warn {
+		background: color-mix(in oklab, var(--danger) 12%, transparent);
+		color: var(--text);
+	}
+	.pgp-line span {
+		flex: 1;
+		min-width: 0;
+	}
+	.pgp-line input {
+		font: inherit;
+		height: 28px;
+		padding-inline: 8px;
+		border-radius: 8px;
+		border: 1px solid var(--border-strong, var(--border));
+		background: var(--surface);
+		color: var(--text);
+		width: 12rem;
+	}
+	.tb.on {
+		color: var(--accent-ink);
+		background: var(--accent-soft);
+	}
+</style>

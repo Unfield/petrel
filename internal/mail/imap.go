@@ -469,6 +469,8 @@ func (p *imapProvider) Get(ctx context.Context, id string) (*Message, error) {
 			msg.InReplyTo = ids[0]
 		}
 		msg.Unsubscribe = unsubscribeOf(pr.header)
+		msg.Autocrypt = pr.header.Get("Autocrypt")
+		msg.PGP = hasPGP(msg)
 		if msg.Attachments == nil {
 			msg.Attachments = []Attachment{}
 		}

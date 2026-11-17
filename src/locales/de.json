@@ -7,7 +7,8 @@
 		"language": "Sprache",
 		"mailboxes": "Postfächer",
 		"team": "Team",
-		"contacts": "Kontakte"
+		"contacts": "Kontakte",
+		"encryption": "Verschlüsselung"
 	},
 	"home": {
 		"tagline": "Moderne Open-Source-Webmail",
@@ -285,6 +286,25 @@
 				"empty": "{n, plural, one {# Nachricht gelöscht} other {# Nachrichten gelöscht}}",
 				"readAll": "{n, plural, one {# Nachricht als gelesen markiert} other {# Nachrichten als gelesen markiert}}"
 			}
+		},
+		"pgp": {
+			"encrypt": "Verschlüsseln (OpenPGP)",
+			"encryptOn": "Verschlüsselt: klicken, um normal zu senden",
+			"sign": "Signieren (OpenPGP)",
+			"signOn": "Signiert: klicken, um nicht zu signieren",
+			"willEncrypt": "Verschlüsselt für alle Empfänger und für dich.",
+			"checking": "Prüfe die Schlüssel der Empfänger…",
+			"missing": "Kein OpenPGP-Schlüssel für {emails}. Füge einen unter Einstellungen → Verschlüsselung hinzu oder sende unverschlüsselt.",
+			"unlockToSign": "Entsperre deinen Schlüssel zum Signieren.",
+			"passphrase": "Passphrase",
+			"unlock": "Entsperren",
+			"decrypted": "Verschlüsselte Nachricht: mit deinem Schlüssel gelesen.",
+			"locked": "Diese Nachricht ist verschlüsselt. Entsperre deinen Schlüssel, um sie zu lesen.",
+			"goodSig": "Von {email} signiert und unverändert.",
+			"unknownSig": "Mit einem Schlüssel signiert, den Petrel nicht hat: Das lässt sich nicht prüfen.",
+			"badSig": "Die Signatur passt nicht: Die Nachricht wurde verändert oder gefälscht.",
+			"importKey": "Schlüssel importieren",
+			"imported": "Schlüssel für {emails} importiert."
 		}
 	},
 	"e": {
@@ -331,7 +351,19 @@
 		"emptyOnly": "Nur Papierkorb und Spam können geleert werden.",
 		"noList": "Diese Nachricht kommt nicht von einer Mailingliste.",
 		"unsubscribe": "Die Liste war nicht erreichbar. Versuch es später noch einmal.",
-		"noSender": "Diese Nachricht hat keinen Absender zum Blockieren."
+		"noSender": "Diese Nachricht hat keinen Absender zum Blockieren.",
+		"pgpPassphrase": "Nimm eine Passphrase mit mindestens 8 Zeichen.",
+		"pgpNotYours": "Diese Adresse ist keines deiner Postfächer und keine deiner Adressen.",
+		"pgpBadPrivate": "Das ist kein privater OpenPGP-Schlüssel.",
+		"pgpWrong": "Diese Passphrase öffnet den Schlüssel nicht.",
+		"pgpNoKeys": "Du hast noch keine OpenPGP-Schlüssel: Erstelle einen unter Einstellungen → Verschlüsselung.",
+		"pgpBadKey": "Das ist kein öffentlicher OpenPGP-Schlüssel.",
+		"pgpCantEncrypt": "Mit diesem Schlüssel lässt sich nicht verschlüsseln.",
+		"pgpNotFound": "Für diese Adresse wurde kein Schlüssel gefunden.",
+		"pgpCantRead": "Keiner deiner Schlüssel kann diese Nachricht lesen.",
+		"pgpLocked": "Entsperre zuerst deinen OpenPGP-Schlüssel.",
+		"pgpMissing": "Kein OpenPGP-Schlüssel für {emails}.",
+		"pgpAgain": "Die Passphrasen stimmen nicht überein."
 	},
 	"acc": {
 		"settings": {
@@ -575,6 +607,43 @@
 			"none": "Noch keine Kontakte. Füge einen hinzu, importiere eine .vcf-Datei oder übernimm jemanden aus „Weitere Kontakte“.",
 			"noneLearned": "Noch niemand: Leute, mit denen du Mails austauschst, erscheinen hier.",
 			"noMatch": "Niemand passt dazu."
+		},
+		"pgp": {
+			"title": "Verschlüsselung",
+			"lead": "OpenPGP: Verschlüssle Mails, damit nur die Empfänger sie lesen können, und signiere sie, damit sie wissen, dass sie von dir sind. Petrel hält deinen privaten Schlüssel mit deiner Passphrase gesperrt und öffnet ihn für 30 Minuten, wenn du sie eingibst.",
+			"own": "Deine Schlüssel",
+			"generated": "Schlüssel erstellt. Teile deinen öffentlichen Schlüssel oder schreib einfach los: Petrel schickt ihn mit deinen Mails mit (Autocrypt).",
+			"importedOwn": "Schlüssel importiert.",
+			"created": "Erstellt am {date}",
+			"expires": "läuft ab am {date}",
+			"downloadPublic": "Öffentlicher Schlüssel",
+			"deleteConfirm": "Diesen Schlüssel löschen? Mails, die damit verschlüsselt sind, lassen sich ohne ihn nicht lesen.",
+			"unlocked": "Entsperrt",
+			"lock": "Jetzt sperren",
+			"lockedHint": "Gesperrt: Petrel fragt nach der Passphrase, wenn es den Schlüssel braucht.",
+			"noOwn": "Noch keine Schlüssel.",
+			"generate": "Schlüssel erstellen",
+			"passphrase": "Passphrase",
+			"again": "Passphrase wiederholen",
+			"passphraseHint": "Mindestens 8 Zeichen. Petrel kann sie nicht wiederherstellen: Ohne sie lassen sich Mails, die mit diesem Schlüssel verschlüsselt sind, nicht lesen.",
+			"generateButton": "Schlüssel erstellen",
+			"importOwn": "Privaten Schlüssel importieren",
+			"privateKey": "Privater Schlüssel",
+			"itsPassphrase": "Seine Passphrase",
+			"newPassphrase": "Neue Passphrase (optional)",
+			"importButton": "Importieren",
+			"others": "Schlüssel anderer",
+			"othersLead": "Petrel verschlüsselt mit diesen. Es lernt auch Schlüssel aus Mails, die sie mitbringen (Autocrypt), und findet Schlüssel, die die Domain des Empfängers veröffentlicht.",
+			"added": "Schlüssel für {emails} hinzugefügt.",
+			"lookup": "Schlüssel per Adresse suchen",
+			"lookupButton": "Suchen",
+			"paste": "Oder öffentlichen Schlüssel einfügen",
+			"addButton": "Schlüssel hinzufügen",
+			"source": {
+				"import": "Importiert",
+				"wkd": "Auf ihrer Domain gefunden (WKD)",
+				"autocrypt": "Aus ihren Mails (Autocrypt)"
+			}
 		}
 	},
 	"tern": {

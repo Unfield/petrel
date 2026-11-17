@@ -275,6 +275,32 @@ func unsubscribe(urls []string, post string) *Unsubscribe {
 	return u
 }
 
+// Fetch GETs a small document over https, through Petrel's guard, such as
+// an OpenPGP key from a Web Key Directory.
+func Fetch(ctx context.Context, u string, o Options, limit int64) ([]byte, error) {
+	if !strings.HasPrefix(strings.ToLower(u), "https://") {
+		return nil, ErrBlocked
+	}
+	h := httpClient(o.AllowPrivate, 15*time.Second)
+	if o.TLS != nil {
+		h.Transport.(*http.Transport).TLSClientConfig = o.TLS.Clone()
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "Petrel")
+	res, err := h.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("mail: %s answered %s", u, res.Status)
+	}
+	return io.ReadAll(io.LimitReader(res.Body, limit))
+}
+
 // OneClickUnsubscribe asks a mailing list to drop the address, as RFC 8058
 // says: a POST to its https address, through the same guard as everything
 // else Petrel connects to.

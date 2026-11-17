@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
+	"github.com/emersion/go-message/textproto"
 	"html"
 	"io"
 	"mime"
@@ -183,35 +184,65 @@ func build(m Outgoing, hostname string) ([]byte, string, error) {
 		h.SetMsgIDList("References", m.References)
 	}
 	h.Set("User-Agent", "Petrel")
+	for k, v := range m.Headers {
+		h.Set(k, v)
+	}
 	var buf bytes.Buffer
+	if m.Seal == nil {
+		if err := writeContent(&buf, h, m); err != nil {
+			return nil, "", err
+		}
+		return buf.Bytes(), id, nil
+	}
+	// PGP/MIME: the content as an entity of its own, sealed, under the
+	// message's header.
+	var entity bytes.Buffer
+	if err := writeContent(&entity, gomail.Header{}, m); err != nil {
+		return nil, "", err
+	}
+	ct, params, body, err := m.Seal(entity.Bytes())
+	if err != nil {
+		return nil, "", err
+	}
+	h.SetContentType(ct, params)
+	h.Set("MIME-Version", "1.0")
+	if err := textproto.WriteHeader(&buf, h.Header.Header); err != nil {
+		return nil, "", err
+	}
+	buf.Write(body)
+	return buf.Bytes(), id, nil
+}
+
+// writeContent writes a message's text, HTML and attachments under h.
+func writeContent(buf *bytes.Buffer, h gomail.Header, m Outgoing) error {
 	var mw *gomail.Writer
 	var w *gomail.InlineWriter
 	var err error
 	if len(m.Attachments) > 0 {
-		if mw, err = gomail.CreateWriter(&buf, h); err != nil {
-			return nil, "", err
+		if mw, err = gomail.CreateWriter(buf, h); err != nil {
+			return err
 		}
 		w, err = mw.CreateInline()
 	} else {
-		w, err = gomail.CreateInlineWriter(&buf, h)
+		w, err = gomail.CreateInlineWriter(buf, h)
 	}
 	if err != nil {
-		return nil, "", err
+		return err
 	}
 	text := m.Text
 	if text == "" {
 		text = preview("", m.HTML, 1<<20)
 	}
 	if err := writePart(w, "text/plain", text); err != nil {
-		return nil, "", err
+		return err
 	}
 	if m.HTML != "" {
 		if err := writePart(w, "text/html", m.HTML); err != nil {
-			return nil, "", err
+			return err
 		}
 	}
 	if err := w.Close(); err != nil {
-		return nil, "", err
+		return err
 	}
 	for _, f := range m.Attachments {
 		var ah gomail.AttachmentHeader
@@ -223,21 +254,19 @@ func build(m Outgoing, hostname string) ([]byte, string, error) {
 		ah.SetFilename(f.Name)
 		aw, err := mw.CreateAttachment(ah)
 		if err != nil {
-			return nil, "", err
+			return err
 		}
 		if _, err := aw.Write(f.Data); err != nil {
-			return nil, "", err
+			return err
 		}
 		if err := aw.Close(); err != nil {
-			return nil, "", err
+			return err
 		}
 	}
 	if mw != nil {
-		if err := mw.Close(); err != nil {
-			return nil, "", err
-		}
+		return mw.Close()
 	}
-	return buf.Bytes(), id, nil
+	return nil
 }
 
 func writePart(w *gomail.InlineWriter, typ, body string) error {
@@ -267,4 +296,50 @@ func domainOf(email string) string {
 		return strings.ToLower(email[i+1:])
 	}
 	return "localhost"
+}
+
+// ParseEntity reads a MIME entity, such as a decrypted PGP/MIME message's
+// content, as a message's text, HTML and attachments.
+func ParseEntity(entity []byte) (html, text string, atts []Attachment, err error) {
+	pr, err := parse(bytes.NewReader(entity), false)
+	if err != nil {
+		return "", "", nil, err
+	}
+	if pr.attachments == nil {
+		pr.attachments = []Attachment{}
+	}
+	return pr.html, pr.text, pr.attachments, nil
+}
+
+// EntityPart reads one attachment of a MIME entity.
+func EntityPart(entity []byte, attID string) (Attachment, []byte, error) {
+	pr, err := parse(bytes.NewReader(entity), true)
+	if err != nil {
+		return Attachment{}, nil, err
+	}
+	p := findPart(pr, attID)
+	if p == nil {
+		return Attachment{}, nil, ErrNotFound
+	}
+	return p.att, p.body, nil
+}
+
+// hasPGP reports whether a message is PGP/MIME (its parts give it away) or
+// holds inline PGP.
+func hasPGP(m *Message) bool {
+	for _, a := range m.Attachments {
+		switch strings.ToLower(a.Type) {
+		case "application/pgp-encrypted", "application/pgp-signature":
+			return true
+		}
+		if strings.EqualFold(a.Name, "encrypted.asc") {
+			return true
+		}
+	}
+	for _, s := range []string{m.Text, m.HTML} {
+		if strings.Contains(s, "-----BEGIN PGP MESSAGE-----") || strings.Contains(s, "-----BEGIN PGP SIGNED MESSAGE-----") {
+			return true
+		}
+	}
+	return false
 }

@@ -76,6 +76,7 @@ type MessageView struct {
 	Attachments []AttachmentView  `json:"attachments"`
 	Body        mail.Body         `json:"body"`
 	Unsubscribe *mail.Unsubscribe `json:"unsubscribe,omitempty"`
+	PGP         *PGPView          `json:"pgp,omitempty"`
 }
 
 // UserID is the signed-in user's ID.

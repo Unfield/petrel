@@ -142,6 +142,11 @@ type Message struct {
 	References  []string     `json:"-"`
 	// Unsubscribe is how to leave the mailing list it came from, if any.
 	Unsubscribe *Unsubscribe `json:"unsubscribe,omitempty"`
+	// Autocrypt is the sender's Autocrypt header, with their OpenPGP key.
+	Autocrypt string `json:"-"`
+	// PGP: the message is PGP/MIME encrypted or signed, or holds inline
+	// PGP, so Petrel reads its original to open it.
+	PGP bool `json:"-"`
 }
 
 // Unsubscribe is a message's List-Unsubscribe (RFC 2369): a web address,
@@ -186,7 +191,15 @@ type Outgoing struct {
 	InReplyTo   string
 	References  []string
 	Attachments []File
+	// Headers are more header fields, such as Autocrypt.
+	Headers map[string]string
+	// Seal, if set, wraps the message's content (a MIME entity) before
+	// sending, for PGP/MIME: it returns the outer Content-Type and body.
+	Seal Seal
 }
+
+// Seal wraps a MIME entity.
+type Seal func(entity []byte) (contentType string, params map[string]string, body []byte, err error)
 
 // File is an attachment to send.
 type File struct {

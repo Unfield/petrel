@@ -2,6 +2,7 @@
 package attachment
 
 import (
+	"bytes"
 	"io"
 	"mime"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/Unfield/Tern/kit"
 
 	"petrel/internal/app"
+	"petrel/internal/mail"
 )
 
 var Access = kit.SignedIn
@@ -24,13 +26,26 @@ func GET(ctx *kit.Ctx) error {
 	if !ok {
 		return kit.NotFound()
 	}
-	p, _, err := app.Current.Mail.Provider(ctx, app.UserID(ctx), account)
-	if err != nil {
-		return app.MailError(ctx, err)
-	}
-	att, body, err := p.Attachment(ctx, id, q.Get("part"))
-	if err != nil {
-		return app.MailError(ctx, err)
+	var att mail.Attachment
+	var body io.ReadCloser
+	if q.Get("pgp") != "" {
+		// Inside an encrypted message: decrypted again for each download.
+		a, data, err := app.Current.Mail.DecryptedPart(ctx, app.UserID(ctx), q.Get("id"), q.Get("part"))
+		if err != nil {
+			return err
+		}
+		att, body = a, io.NopCloser(bytes.NewReader(data))
+		w := ctx.Writer()
+		w.Header().Set("Cache-Control", "private, no-store")
+	} else {
+		p, _, err := app.Current.Mail.Provider(ctx, app.UserID(ctx), account)
+		if err != nil {
+			return app.MailError(ctx, err)
+		}
+		att, body, err = p.Attachment(ctx, id, q.Get("part"))
+		if err != nil {
+			return app.MailError(ctx, err)
+		}
 	}
 	defer body.Close()
 	w := ctx.Writer()
@@ -45,8 +60,10 @@ func GET(ctx *kit.Ctx) error {
 	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": att.Name}))
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox")
-	w.Header().Set("Cache-Control", "private, max-age=3600")
+	if w.Header().Get("Cache-Control") == "" {
+		w.Header().Set("Cache-Control", "private, max-age=3600")
+	}
 	w.WriteHeader(http.StatusOK)
-	_, err = io.Copy(w, body)
+	_, err := io.Copy(w, body)
 	return err
 }

@@ -359,7 +359,7 @@ func (m *MailAccounts) DeleteUser(ctx context.Context, userID int64) error {
 			return err
 		}
 	}
-	for _, table := range []string{"uploads", "contacts", "user_prefs", "snoozes", "identities", "mail_rules"} {
+	for _, table := range []string{"uploads", "contacts", "user_prefs", "snoozes", "identities", "mail_rules", "pgp_keys", "pgp_public"} {
 		if _, err := m.db.ExecContext(ctx, `DELETE FROM `+table+` WHERE user_id = ?`, userID); err != nil {
 			return err
 		}

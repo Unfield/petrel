@@ -16,6 +16,7 @@ var Actions = kit.Actions{
 	"default": func(ctx *kit.Ctx) (any, error) {
 		if u := accounts.Current(ctx); u != nil {
 			app.Current.DirectSignOut(ctx, u.ID) // direct mode forgets the mailbox password
+			app.LockKeys(u.ID)                   // and OpenPGP keys close
 		}
 		if err := app.Current.Accounts.SignOut(ctx); err != nil {
 			return nil, err

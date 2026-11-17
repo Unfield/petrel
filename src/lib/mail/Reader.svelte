@@ -20,6 +20,10 @@
 	let labelOpen = $state(false);
 	let snoozeOpen = $state(false);
 	let moreOpen = $state(false);
+	let pass = $state('');
+	async function unlock() {
+		if (pass && (await store.unlock(pass))) pass = '';
+	}
 	$effect(() => {
 		const close = () => (moveOpen = labelOpen = snoozeOpen = moreOpen = false);
 		window.addEventListener('petrel:closemenus', close);
@@ -180,6 +184,20 @@
 							</header>
 							{#if full}
 								{@const files = full.attachments.filter((a) => !a.inline || !a.cid)}
+								{#if full.pgp}
+									{@const g = full.pgp}
+									<div class="pgp" class:bad={g.signature?.status === 'bad' || g.error}>
+										{#if g.encrypted}<Icon name="lock" size={15} /><span>{g.decrypted ? t('m.pgp.decrypted') : g.locked ? t('m.pgp.locked') : g.error}</span>{/if}
+										{#if g.signature}
+											<Icon name={g.signature.status === 'good' ? 'seal' : 'alert'} size={15} />
+											<span>{g.signature.status === 'good' ? t('m.pgp.goodSig', { email: g.signature.email ?? '' }) : g.signature.status === 'unknown' ? t('m.pgp.unknownSig') : t('m.pgp.badSig')}</span>
+										{/if}
+										{#if g.locked}
+											<input type="password" bind:value={pass} placeholder={t('m.pgp.passphrase')} onkeydown={(e) => e.key === 'Enter' && unlock()} aria-label={t('m.pgp.passphrase')} />
+											<button class="btn sm" onclick={unlock}>{t('m.pgp.unlock')}</button>
+										{/if}
+									</div>
+								{/if}
 								{#if full.body.hasRemote && !imagesOn(m)}
 									<div class="img-banner">
 										<Icon name="shield" size={16} /><span style="flex:1;min-width:180px">{t('m.imgBlocked')}</span>
@@ -196,6 +214,9 @@
 												<span class="att-ic" class:img={a.type.startsWith('image/')} class:doc={!a.type.startsWith('image/') && a.type !== 'application/pdf'}>{ext.slice(0, 4)}</span>
 												<span style="min-width:0"><div class="att-name">{a.name}</div><div class="att-size">{fmtSize(a.size)}</div></span>
 											</a>
+											{#if a.type === 'application/pgp-keys' || a.name.endsWith('.asc') && a.name.includes('key')}
+												<button class="btn sm" onclick={() => store.importKey(m.id, a.id)}><Icon name="lock" size={14} />{t('m.pgp.importKey')}</button>
+											{/if}
 										{/each}
 									</div>
 								{/if}
@@ -221,6 +242,31 @@
 </section>
 
 <style>
+	.pgp {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		margin: 0 18px 10px;
+		padding: 8px 12px;
+		border-radius: 10px;
+		font-size: 13px;
+		color: var(--text-2);
+		background: color-mix(in oklab, var(--accent) 9%, transparent);
+	}
+	.pgp.bad {
+		background: color-mix(in oklab, var(--danger) 12%, transparent);
+		color: var(--text);
+	}
+	.pgp input {
+		font: inherit;
+		height: 28px;
+		padding-inline: 8px;
+		border-radius: 8px;
+		border: 1px solid var(--border);
+		background: var(--surface);
+		color: var(--text);
+	}
 	.unsub {
 		border: 0;
 		background: none;

@@ -335,5 +335,6 @@ func (m *MailAccounts) Message(ctx context.Context, userID int64, message string
 			URL:        "/api/mail/attachment?id=" + url.QueryEscape(message) + "&part=" + url.QueryEscape(a.ID),
 		})
 	}
+	m.openPGP(ctx, userID, p, id, msg, v, message)
 	return v, nil
 }

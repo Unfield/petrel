@@ -7,7 +7,8 @@
 		"language": "Language",
 		"mailboxes": "Mailboxes",
 		"team": "Team",
-		"contacts": "Contacts"
+		"contacts": "Contacts",
+		"encryption": "Encryption"
 	},
 	"home": {
 		"tagline": "Modern, open-source webmail",
@@ -285,6 +286,25 @@
 				"empty": "{n, plural, one {Deleted # message} other {Deleted # messages}}",
 				"readAll": "{n, plural, one {Marked # message as read} other {Marked # messages as read}}"
 			}
+		},
+		"pgp": {
+			"encrypt": "Encrypt (OpenPGP)",
+			"encryptOn": "Encrypted: click to send normally",
+			"sign": "Sign (OpenPGP)",
+			"signOn": "Signed: click to not sign",
+			"willEncrypt": "Encrypted for every recipient, and for you.",
+			"checking": "Checking the recipients’ keys…",
+			"missing": "No OpenPGP key for {emails}. Add one in Settings → Encryption, or send without encrypting.",
+			"unlockToSign": "Unlock your key to sign.",
+			"passphrase": "Passphrase",
+			"unlock": "Unlock",
+			"decrypted": "Encrypted message: read with your key.",
+			"locked": "This message is encrypted. Unlock your key to read it.",
+			"goodSig": "Signed by {email}, and unchanged.",
+			"unknownSig": "Signed with a key Petrel doesn’t have: it can’t be checked.",
+			"badSig": "The signature doesn’t match: the message changed, or it’s forged.",
+			"importKey": "Import key",
+			"imported": "Key imported for {emails}."
 		}
 	},
 	"e": {
@@ -331,7 +351,19 @@
 		"emptyOnly": "Only Trash and Spam can be emptied.",
 		"noList": "This message isn’t from a mailing list.",
 		"unsubscribe": "The list couldn’t be reached. Try again later.",
-		"noSender": "This message has no sender to block."
+		"noSender": "This message has no sender to block.",
+		"pgpPassphrase": "Use a passphrase of at least 8 characters.",
+		"pgpNotYours": "That address isn’t one of your mailboxes or addresses.",
+		"pgpBadPrivate": "That isn’t an OpenPGP private key.",
+		"pgpWrong": "That passphrase doesn’t open the key.",
+		"pgpNoKeys": "You have no OpenPGP keys yet: make one in Settings → Encryption.",
+		"pgpBadKey": "That isn’t an OpenPGP public key.",
+		"pgpCantEncrypt": "That key can’t encrypt.",
+		"pgpNotFound": "No key found for that address.",
+		"pgpCantRead": "None of your keys can read this message.",
+		"pgpLocked": "Unlock your OpenPGP key first.",
+		"pgpMissing": "No OpenPGP key for {emails}.",
+		"pgpAgain": "The passphrases don’t match."
 	},
 	"acc": {
 		"settings": {
@@ -575,6 +607,43 @@
 			"none": "No contacts yet. Add one, import a .vcf file, or keep someone from Other contacts.",
 			"noneLearned": "No one yet: people you write to and hear from show up here.",
 			"noMatch": "No one matches that."
+		},
+		"pgp": {
+			"title": "Encryption",
+			"lead": "OpenPGP: encrypt mail so only its recipients can read it, and sign it so they know it’s from you. Petrel keeps your private key locked with your passphrase and opens it for 30 minutes when you enter it.",
+			"own": "Your keys",
+			"generated": "Key made. Share your public key, or just write: Petrel sends it along with your mail (Autocrypt).",
+			"importedOwn": "Key imported.",
+			"created": "Made {date}",
+			"expires": "expires {date}",
+			"downloadPublic": "Public key",
+			"deleteConfirm": "Delete this key? Mail encrypted to it can’t be read without it.",
+			"unlocked": "Unlocked",
+			"lock": "Lock now",
+			"lockedHint": "Locked: Petrel asks for the passphrase when it needs the key.",
+			"noOwn": "No keys yet.",
+			"generate": "Make a key",
+			"passphrase": "Passphrase",
+			"again": "Passphrase again",
+			"passphraseHint": "At least 8 characters. Petrel can’t recover it: without it, mail encrypted to this key can’t be read.",
+			"generateButton": "Make key",
+			"importOwn": "Import a private key",
+			"privateKey": "Private key",
+			"itsPassphrase": "Its passphrase",
+			"newPassphrase": "New passphrase (optional)",
+			"importButton": "Import",
+			"others": "Other people’s keys",
+			"othersLead": "Petrel encrypts to these. It also learns keys from mail that carries them (Autocrypt) and finds keys published by the recipient’s domain.",
+			"added": "Key added for {emails}.",
+			"lookup": "Find a key by address",
+			"lookupButton": "Look up",
+			"paste": "Or paste a public key",
+			"addButton": "Add key",
+			"source": {
+				"import": "Imported",
+				"wkd": "Found on their domain (WKD)",
+				"autocrypt": "From their mail (Autocrypt)"
+			}
 		}
 	}
 }

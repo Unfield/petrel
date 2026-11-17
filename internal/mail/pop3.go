@@ -317,6 +317,8 @@ func (p *pop3Provider) Get(ctx context.Context, id string) (*Message, error) {
 		m.InReplyTo = ids[0]
 	}
 	m.Unsubscribe = unsubscribeOf(pr.header)
+	m.Autocrypt = pr.header.Get("Autocrypt")
+	m.PGP = hasPGP(m)
 	if m.Attachments == nil {
 		m.Attachments = []Attachment{}
 	}

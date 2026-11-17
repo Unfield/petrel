@@ -46,6 +46,7 @@ export type Message = Summary & {
 	attachments: Attachment[];
 	body: { html: string; plain: boolean; hasRemote: boolean };
 	unsubscribe?: { url?: string; mailto?: string; oneClick?: boolean };
+	pgp?: { encrypted: boolean; decrypted: boolean; locked: boolean; error?: string; signature?: { status: 'good' | 'bad' | 'unknown'; email?: string; fingerprint?: string } };
 };
 
 /** A row in the list: a conversation, or one message when threads are off. */
@@ -84,6 +85,8 @@ export type Compose = {
 	replyTo?: string;
 	draftId?: string;
 	identityId?: number;
+	encrypt?: boolean; // OpenPGP
+	sign?: boolean;
 	attachments: OutFile[];
 	min: boolean;
 	max: boolean;

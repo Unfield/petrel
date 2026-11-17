@@ -282,6 +282,10 @@ type jmapEmail struct {
 	BlobID        string               `json:"blobId"`
 	Unsubscribe   []string             `json:"header:List-Unsubscribe:asURLs"`
 	UnsubPost     *string              `json:"header:List-Unsubscribe-Post:asText"`
+	Autocrypt     *string              `json:"header:Autocrypt:asText"`
+	BodyStructure *struct {
+		Type string `json:"type"`
+	} `json:"bodyStructure"`
 }
 
 type jmapPart struct {
@@ -432,7 +436,7 @@ func (p *jmapProvider) getEmail(ctx context.Context, id string) (*jmapEmail, err
 		return nil, err
 	}
 	props := append(append([]string{}, summaryProps...), "bcc", "replyTo", "inReplyTo", "references", "textBody", "htmlBody", "attachments", "bodyValues", "blobId",
-		"header:List-Unsubscribe:asURLs", "header:List-Unsubscribe-Post:asText")
+		"header:List-Unsubscribe:asURLs", "header:List-Unsubscribe-Post:asText", "header:Autocrypt:asText", "bodyStructure")
 	res, err := p.call(ctx, nil, invocation{"Email/get", map[string]any{
 		"accountId": acc, "ids": []string{id}, "properties": props,
 		"fetchTextBodyValues": true, "fetchHTMLBodyValues": true, "maxBodyValueBytes": 4 << 20,
@@ -463,6 +467,9 @@ func (p *jmapProvider) Get(ctx context.Context, id string) (*Message, error) {
 		post = *e.UnsubPost
 	}
 	m.Unsubscribe = unsubscribe(e.Unsubscribe, post)
+	if e.Autocrypt != nil {
+		m.Autocrypt = *e.Autocrypt
+	}
 	if len(e.InReplyTo) > 0 {
 		m.InReplyTo = e.InReplyTo[0]
 	}
@@ -490,6 +497,10 @@ func (p *jmapProvider) Get(ctx context.Context, id string) (*Message, error) {
 			ID: a.BlobID, Name: name, Type: a.Type, Size: a.Size, CID: strings.Trim(a.CID, "<>"),
 			Inline: a.Disposition == "inline" || (a.CID != "" && a.Disposition != "attachment"),
 		})
+	}
+	m.PGP = hasPGP(m)
+	if bs := e.BodyStructure; bs != nil && (bs.Type == "multipart/encrypted" || bs.Type == "multipart/signed") {
+		m.PGP = true
 	}
 	return m, nil
 }
@@ -729,16 +740,34 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 	if identity == "" {
 		return errors.New("mail: this account has no identity to send as")
 	}
-	email, err := p.email(ctx, m, drafts)
-	if err != nil {
-		return err
-	}
 	onSuccess := map[string]any{"keywords/$draft": nil, "mailboxIds/" + drafts: nil}
 	if sent != "" {
 		onSuccess["mailboxIds/"+sent] = true
 	}
+	// A sealed message (PGP/MIME) can't be described as JMAP parts: it's
+	// built as MIME and imported.
+	create := invocation{}
+	if m.Seal != nil {
+		raw, _, err := build(m, domainOf(m.From.Email))
+		if err != nil {
+			return err
+		}
+		blob, err := p.upload(ctx, File{Name: "message.eml", Type: "message/rfc822", Data: raw})
+		if err != nil {
+			return err
+		}
+		create = invocation{"Email/import", map[string]any{"accountId": acc, "emails": map[string]any{"draft": map[string]any{
+			"blobId": blob, "mailboxIds": map[string]bool{drafts: true}, "keywords": map[string]bool{"$draft": true, "$seen": true},
+		}}}, "e"}
+	} else {
+		email, err := p.email(ctx, m, drafts)
+		if err != nil {
+			return err
+		}
+		create = invocation{"Email/set", map[string]any{"accountId": acc, "create": map[string]any{"draft": email}}, "e"}
+	}
 	res, err = p.call(ctx, []string{capSubmission},
-		invocation{"Email/set", map[string]any{"accountId": acc, "create": map[string]any{"draft": email}}, "e"},
+		create,
 		invocation{"EmailSubmission/set", map[string]any{
 			"accountId":            acc,
 			"create":               map[string]any{"sub": map[string]any{"identityId": identity, "emailId": "#draft"}},

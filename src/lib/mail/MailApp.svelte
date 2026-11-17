@@ -46,6 +46,7 @@
 		dq.addEventListener('change', onDq);
 
 		let events: EventSource | undefined;
+		store.loadPgp();
 		if (accounts.length) {
 			// /mail?to=… opens a message to someone, as from the address book.
 			const to = new URLSearchParams(location.search).get('to');

@@ -24,6 +24,8 @@ type Draft struct {
 	Attachments []FileRef `json:"attachments"` // uploads, or parts of messages
 	DraftID     string    `json:"draftId"`     // the saved draft this replaces
 	IdentityID  int64     `json:"identityId"`  // who it's from: 0 for the mailbox's default
+	Encrypt     bool      `json:"encrypt"`     // OpenPGP: to every recipient's key
+	Sign        bool      `json:"sign"`        // OpenPGP: with the sender's unlocked key
 }
 
 func parseList(ctx context.Context, s, field string) ([]mail.Address, error) {
@@ -74,6 +76,12 @@ func (m *MailAccounts) Outgoing(ctx *kit.Ctx, userID int64, d Draft, strict bool
 	}
 	if out.Attachments, err = m.Files(ctx, userID, d.Attachments); err != nil {
 		return nil, out, MailError(ctx, err)
+	}
+	// OpenPGP is for sending; drafts stay as they are.
+	if strict {
+		if err := m.seal(ctx, userID, &out, d.Encrypt, d.Sign); err != nil {
+			return nil, out, err
+		}
 	}
 	return p, out, nil
 }

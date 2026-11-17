@@ -146,6 +146,7 @@ docs/                design notes
   - print, show the original, download as .eml
   - snooze: messages come back to the inbox, unread, on time
   - filters and a vacation reply, run by the mail server as Sieve (ManageSieve for IMAP, JMAP Sieve and VacationResponse for JMAP)
+- **OpenPGP:** encrypt and sign as PGP/MIME; read PGP/MIME and inline PGP and check signatures; keys from Web Key Directories, Autocrypt and attachments. See [OpenPGP](#openpgp)
 - **Contacts:** an address book with vCard import and export, beside the people learned from your mail
 - **Desktop notifications** for new mail while Petrel is in the background
 - **Yours:**
@@ -172,6 +173,12 @@ Set `PETREL_AUTH_MODE=direct` and list your servers in `PETREL_DIRECT_SERVERS` (
 ```
 
 People then sign in with their email address and its password. Petrel keeps the password, encrypted, only until they sign out.
+
+### OpenPGP
+
+Petrel does OpenPGP on the server, as Roundcube's Enigma does, not in the browser as Mailvelope does. Your private keys are stored locked with your passphrase, and sealed again with Petrel's key. Entering the passphrase opens them in Petrel's memory for 30 minutes from their last use; signing out closes them. Encrypting to others needs only their public keys.
+
+This protects your mail from your mail provider and everyone on the way. It doesn't protect it from whoever runs your Petrel: they could read it while your key is open, as they could read your mail at any time. Run Petrel yourself, or trust whoever runs it.
 
 ### Gmail and Outlook
 

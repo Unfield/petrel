@@ -14,6 +14,7 @@
 				{ label: t('nav.mailboxes'), href: '/settings/mailboxes', icon: mailIcon },
 				{ label: t('nav.settings'), href: '/settings', icon: settingsIcon },
 				{ label: t('nav.security'), href: '/settings/security', icon: securityIcon },
+				{ label: t('nav.encryption'), href: '/settings/encryption', icon: keyIcon },
 				...(data.showTeams ? [{ label: t('nav.team'), href: '/settings/team', icon: settingsIcon }] : [])
 			]
 		}
@@ -25,6 +26,9 @@
 {/snippet}
 {#snippet contactsIcon()}
 	<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2" /><circle cx="12" cy="10" r="3" /><path d="M7.5 17c1-2 2.6-3 4.5-3s3.5 1 4.5 3" /></svg>
+{/snippet}
+{#snippet keyIcon()}
+	<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="15" r="4" /><path d="M11 12l9-9M16 7l3 3M14 9l2 2" /></svg>
 {/snippet}
 {#snippet settingsIcon()}
 	<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 4-6 8-6s8 2 8 6" /></svg>

@@ -578,3 +578,85 @@ func TestContacts(t *testing.T) {
 		t.Errorf("suggestions: %+v", people)
 	}
 }
+
+// TestPGP: making a key, sending encrypted and signed mail, and reading it.
+func TestPGP(t *testing.T) {
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	ip, sp, _ := mailServer(t)
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	c.PostForm("/settings/mailboxes?/connect", url.Values{
+		"email": {"ada@example.test"}, "name": {"Ada"}, "password": {"secret"}, "protocol": {"imap"},
+		"host": {"127.0.0.1"}, "port": {strconv.Itoa(ip)}, "security": {"plain"},
+		"smtpHost": {"127.0.0.1"}, "smtpPort": {strconv.Itoa(sp)}, "smtpSecurity": {"plain"},
+	})
+	var accounts []app.AccountView
+	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+	acc := accounts[0].ID
+
+	if p := c.PostForm("/settings/encryption?/generate", url.Values{"email": {"someone@else.test"}, "passphrase": {"correct horse"}, "again": {"correct horse"}}); p.Status != 400 {
+		t.Errorf("a key for someone else's address: %d", p.Status)
+	}
+	if p := c.PostForm("/settings/encryption?/generate", url.Values{"email": {"ada@example.test"}, "name": {"Ada"}, "passphrase": {"correct horse"}, "again": {"correct horse"}}); p.Status != 200 {
+		t.Fatalf("generate: %d %s", p.Status, p.Body)
+	}
+	var status struct {
+		Keys     []string
+		Unlocked bool
+	}
+	api(t, c, "GET", "/api/pgp/status", nil, &status)
+	if len(status.Keys) != 1 || status.Unlocked {
+		t.Fatalf("status: %+v", status)
+	}
+	if s := api(t, c, "POST", "/api/pgp/unlock", map[string]string{"passphrase": "wrong"}, nil); s != 400 {
+		t.Errorf("a wrong passphrase: %d", s)
+	}
+
+	// No key for a stranger: refused rather than sent in the clear.
+	if s := api(t, c, "POST", "/api/mail/send", map[string]any{"accountId": acc, "to": "stranger@nowhere.test", "subject": "x", "html": "x", "encrypt": true}, nil); s != 400 {
+		t.Errorf("encrypting to a stranger: %d", s)
+	}
+	// Signing needs the key unlocked.
+	if s := api(t, c, "POST", "/api/mail/send", map[string]any{"accountId": acc, "to": "ada@example.test", "subject": "x", "html": "x", "sign": true}, nil); s != 403 {
+		t.Errorf("signing while locked: %d", s)
+	}
+	if s := api(t, c, "POST", "/api/pgp/unlock", map[string]string{"passphrase": "correct horse"}, nil); s != 200 {
+		t.Fatal("unlock")
+	}
+	send := map[string]any{"accountId": acc, "to": "ada@example.test", "subject": "Secret plan", "html": "<p>The <b>plan</b> is on.</p>", "text": "The plan is on.", "encrypt": true, "sign": true}
+	if s := api(t, c, "POST", "/api/mail/send", send, nil); s != 200 {
+		t.Fatalf("send encrypted: %d", s)
+	}
+	api(t, c, "POST", "/api/mail/send", map[string]any{"accountId": acc, "to": "ada@example.test", "subject": "Signed note", "html": "<p>Signed.</p>", "text": "Signed.", "sign": true}, nil)
+
+	var in list
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox", nil, &in)
+	ids := map[string]string{}
+	for _, m := range in.Messages {
+		ids[m.Subject] = m.ID
+	}
+	raw := c.Get("/api/mail/raw?id=" + url.QueryEscape(ids["Secret plan"]))
+	if !strings.Contains(raw.Body, "multipart/encrypted") || strings.Contains(raw.Body, "plan</b> is on") || !strings.Contains(raw.Body, "Autocrypt: addr=ada@example.test") {
+		t.Errorf("not encrypted on the wire: %.600s", raw.Body)
+	}
+	type view struct {
+		Body struct{ HTML string }
+		PGP  *app.PGPView
+	}
+	var v view
+	api(t, c, "GET", "/api/mail/message?id="+url.QueryEscape(ids["Secret plan"]), nil, &v)
+	if v.PGP == nil || !v.PGP.Decrypted || !strings.Contains(v.Body.HTML, "<b>plan</b>") || v.PGP.Signature == nil || v.PGP.Signature.Status != "good" {
+		t.Errorf("decrypted: %+v %q", v.PGP, v.Body.HTML)
+	}
+	api(t, c, "POST", "/api/pgp/lock", map[string]any{}, nil)
+	v = view{}
+	api(t, c, "GET", "/api/mail/message?id="+url.QueryEscape(ids["Secret plan"]), nil, &v)
+	if v.PGP == nil || !v.PGP.Locked || strings.Contains(v.Body.HTML, "plan") {
+		t.Errorf("locked: %+v %q", v.PGP, v.Body.HTML)
+	}
+	v = view{}
+	api(t, c, "GET", "/api/mail/message?id="+url.QueryEscape(ids["Signed note"]), nil, &v)
+	if v.PGP == nil || v.PGP.Signature == nil || v.PGP.Signature.Status != "good" || !strings.Contains(v.Body.HTML, "Signed.") {
+		t.Errorf("signed: %+v", v.PGP)
+	}
+}

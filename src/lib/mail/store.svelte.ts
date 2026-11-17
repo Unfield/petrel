@@ -246,6 +246,46 @@ export class MailStore {
 		if (unseen.length) this.setSeen(unseen.map((m) => m.id), true, false);
 	}
 
+	// ─── OpenPGP ───────────────────────────────────────────
+
+	/** The addresses with keys, and whether they're unlocked. */
+	pgp = $state<{ keys: string[]; unlocked: boolean }>({ keys: [], unlocked: false });
+
+	async loadPgp() {
+		try {
+			this.pgp = await api<{ keys: string[]; unlocked: boolean }>('/api/pgp/status');
+		} catch {
+			/* no keys */
+		}
+	}
+
+	/** Opens the user's keys, and reads again the messages that needed them. */
+	async unlock(passphrase: string): Promise<boolean> {
+		try {
+			await post('/api/pgp/unlock', { passphrase });
+			this.pgp = { ...this.pgp, unlocked: true };
+			for (const [id, m] of this.full) if (m.pgp?.locked) (this.full.delete(id), this.load(id));
+			return true;
+		} catch (e) {
+			this.notify((e as Error).message, undefined, true);
+			return false;
+		}
+	}
+
+	/** Which of these addresses Petrel can encrypt to, looking the rest up. */
+	recipientKeys(emails: string[]): Promise<Record<string, boolean>> {
+		return api<Record<string, boolean>>('/api/pgp/recipients?lookup=1&emails=' + encodeURIComponent(emails.join(',')));
+	}
+
+	async importKey(id: string, part: string) {
+		try {
+			const res = await post<{ emails: string[] }>('/api/pgp/keyfile', { id, part });
+			this.notify(t('m.pgp.imported', { emails: res.emails.join(', ') }));
+		} catch (e) {
+			this.#failed(e);
+		}
+	}
+
 	async load(id: string) {
 		if (this.full.has(id)) return;
 		try {
@@ -551,7 +591,7 @@ export class MailStore {
 
 	#payload(c: Compose, html: string, text: string) {
 		return {
-			accountId: c.accountId, identityId: c.identityId ?? 0, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '', draftId: c.draftId ?? '',
+			accountId: c.accountId, identityId: c.identityId ?? 0, encrypt: !!c.encrypt, sign: !!c.sign, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '', draftId: c.draftId ?? '',
 			attachments: c.attachments.filter((a) => a.upload || a.message).map((a) => ({ upload: a.upload, message: a.message, part: a.part }))
 		};
 	}
