@@ -189,6 +189,8 @@ Register an OAuth app with Google or Microsoft and set `PETREL_GOOGLE_CLIENT_ID`
 
 Issues and pull requests are welcome. Petrel is early, so for anything bigger than a fix, please open an issue first so we can agree on the approach.
 
+If your change is something people running Petrel would notice, add a line under **Unreleased** in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 [MIT](LICENSE)
