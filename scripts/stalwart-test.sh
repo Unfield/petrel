@@ -9,7 +9,8 @@
 #
 # PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_POP3=127.0.0.1:2995 PETREL_REAL_SMTP=127.0.0.1:2465
 # also test IMAP, POP3 and SMTP over TLS against it (TestRealServers), and
-# PETREL_REAL_SIEVE=127.0.0.1:24190 filters and vacation replies (TestRealSieve).
+# PETREL_REAL_SIEVE=127.0.0.1:24190 filters and vacation replies (TestRealSieve),
+# and PETREL_CALDAV_URL=http://127.0.0.1:8080/.well-known/caldav the calendar.
 # Sam has a 100 MB quota, for the storage meter.
 #
 # Remove it with: docker rm -f petrel-stalwart

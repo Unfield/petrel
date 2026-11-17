@@ -109,3 +109,19 @@ func httpClient(allowPrivate bool, timeout time.Duration) *http.Client {
 
 // limited reads at most n bytes of a response.
 func limited(r io.Reader, n int64) io.Reader { return io.LimitReader(r, n) }
+
+// HTTPClient is a guarded client for other services of a mailbox's
+// provider, such as its calendars (CalDAV).
+func HTTPClient(o Options, timeout time.Duration) *http.Client {
+	h := httpClient(o.AllowPrivate, timeout)
+	if o.TLS != nil {
+		h.Transport.(*http.Transport).TLSClientConfig = o.TLS.Clone()
+	}
+	return h
+}
+
+// AccessToken is an OAuth account's current access token, renewed if it
+// expired, for services beside mail.
+func AccessToken(ctx context.Context, c *Credentials, o Options) (string, error) {
+	return token(ctx, c, o)
+}

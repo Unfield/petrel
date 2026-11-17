@@ -363,7 +363,13 @@
 		"pgpCantRead": "Keiner deiner Schlüssel kann diese Nachricht lesen.",
 		"pgpLocked": "Entsperre zuerst deinen OpenPGP-Schlüssel.",
 		"pgpMissing": "Kein OpenPGP-Schlüssel für {emails}.",
-		"pgpAgain": "Die Passphrasen stimmen nicht überein."
+		"pgpAgain": "Die Passphrasen stimmen nicht überein.",
+		"calRange": "Frag nach höchstens einem Jahr an Terminen.",
+		"calUnreachable": "Der Kalenderserver war nicht erreichbar.",
+		"calServer": "Der Kalenderserver meldet: {error}",
+		"calTimes": "Der Termin muss nach seinem Beginn enden.",
+		"calAnswer": "Antworte mit Ja, Vielleicht oder Nein.",
+		"calNotInvite": "Das ist keine Einladung, auf die man antworten kann."
 	},
 	"acc": {
 		"settings": {
@@ -964,5 +970,73 @@
 			"same": "{field} stimmt nicht überein.",
 			"url": "{field} muss eine Webadresse sein, die mit http:// oder https:// beginnt."
 		}
+	},
+	"cal": {
+		"title": "Kalender",
+		"today": "Heute",
+		"prev": "Früher",
+		"next": "Später",
+		"view": "Ansicht",
+		"day": "Tag",
+		"week": "Woche",
+		"month": "Monat",
+		"agenda": "Liste",
+		"new": "Neuer Termin",
+		"edit": "Termin bearbeiten",
+		"more": "{n} weitere",
+		"allDay": "Ganztägig",
+		"nothing": "Nichts in den nächsten 30 Tagen.",
+		"none": "Keine Kalender gefunden",
+		"noneSub": "Petrel sucht CalDAV-Kalender bei deinem Mail-Anbieter, mit derselben Anmeldung wie deine Mails. Fastmail, iCloud, Nextcloud, Stalwart und die meisten anderen haben welche.",
+		"noCalendars": "Kein Kalender, in den es passt.",
+		"titlePlaceholder": "Titel hinzufügen",
+		"untitled": "Termin ohne Titel",
+		"repeat": "Wiederholung",
+		"once": "Keine Wiederholung",
+		"starts": "Beginn",
+		"ends": "Ende",
+		"startTime": "Startzeit",
+		"endTime": "Endzeit",
+		"seriesNote": "Änderungen gelten für jeden Termin der Serie.",
+		"location": "Ort",
+		"description": "Beschreibung",
+		"calendar": "Kalender",
+		"organizer": "Organisator",
+		"delete": "Löschen",
+		"deleteConfirm": "Diesen Termin löschen?",
+		"deleteSeries": "Jeden Termin dieser Serie löschen?",
+		"saved": "Termin gespeichert",
+		"deleted": "Termin gelöscht",
+		"r": {
+			"daily": "Jeden Tag",
+			"weekly": "Jede Woche",
+			"monthly": "Jeden Monat",
+			"yearly": "Jedes Jahr",
+			"custom": "Benutzerdefiniert (bleibt, wie es ist)"
+		},
+		"ps": {
+			"ACCEPTED": "zugesagt",
+			"DECLINED": "abgesagt",
+			"TENTATIVE": "vielleicht",
+			"NEEDS-ACTION": "hat noch nicht geantwortet"
+		},
+		"invite": "Einladung",
+		"cancelled": "Abgesagt",
+		"replyFrom": "Antworten",
+		"accept": "Ja",
+		"maybe": "Vielleicht",
+		"decline": "Nein",
+		"yours": "Deine Antwort: {status}",
+		"sent": {
+			"accepted": "Zugesagt und in deinen Kalender eingetragen",
+			"tentative": "Mit Vielleicht geantwortet und in deinen Kalender eingetragen",
+			"declined": "Abgesagt"
+		},
+		"accepted": "Zugesagt",
+		"tentative": "Vorläufig zugesagt",
+		"declined": "Abgesagt",
+		"acceptedText": "{name} hat die Einladung zu „{title}“ angenommen.",
+		"tentativeText": "{name} kommt vielleicht zu „{title}“.",
+		"declinedText": "{name} hat die Einladung zu „{title}“ abgelehnt."
 	}
 }

@@ -1,6 +1,6 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { t, type MessageKey } from '@ternkit/tern';
-import type { Account, Compose, Identity, Item, Message, Prefs, Summary, Toast } from './types';
+import type { Account, CalEvent, CalendarInfo, Compose, Identity, Item, Message, Prefs, Summary, Toast } from './types';
 import { display, escapeHTML, quoteHeader, signatureBlock } from './util';
 
 export const DEFAULT_PREFS: Prefs = {
@@ -213,6 +213,7 @@ export class MailStore {
 	}
 
 	go(folder: string, account: 'all' | number = this.account) {
+		this.view = 'mail';
 		this.folder = folder;
 		this.account = account;
 		this.openId = this.cursorId = null;
@@ -244,6 +245,69 @@ export class MailStore {
 		// The newest message, and unread ones, open expanded: load them.
 		for (const m of it.msgs) if (m === it.latest || !m.seen || this.expanded.has(m.id)) this.load(m.id);
 		if (unseen.length) this.setSeen(unseen.map((m) => m.id), true, false);
+	}
+
+	// ─── Calendar ──────────────────────────────────────────
+
+	/** Mail, or the calendar. */
+	view = $state<'mail' | 'calendar'>('mail');
+	calendars = $state<CalendarInfo[]>([]);
+	/** Calendars the user switched off, kept on this device. */
+	hiddenCalendars = new SvelteSet<string>(typeof localStorage === 'undefined' ? [] : JSON.parse(localStorage.getItem('petrel-hidden-calendars') || '[]'));
+
+	showCalendar() {
+		this.view = 'calendar';
+		this.openId = null;
+		this.ui.drawer = false;
+		if (typeof history !== 'undefined') history.replaceState(history.state, '', '/mail#calendar');
+	}
+
+	toggleCalendar(id: string) {
+		if (this.hiddenCalendars.has(id)) this.hiddenCalendars.delete(id);
+		else this.hiddenCalendars.add(id);
+		localStorage.setItem('petrel-hidden-calendars', JSON.stringify([...this.hiddenCalendars]));
+	}
+
+	async loadCalendars() {
+		this.calendars = await api<CalendarInfo[]>('/api/cal/calendars');
+	}
+
+	loadEvents(from: Date, to: Date) {
+		return api<CalEvent[]>(`/api/cal/events?from=${encodeURIComponent(from.toISOString())}&to=${encodeURIComponent(to.toISOString())}`);
+	}
+
+	async saveEvent(e: { id: string; calendar: string; title: string; start: string; end: string; allDay: boolean; location: string; description: string; repeat: string }): Promise<boolean> {
+		try {
+			await post('/api/cal/event', e);
+			this.notify(t('cal.saved'));
+			return true;
+		} catch (err) {
+			this.#failed(err);
+			return false;
+		}
+	}
+
+	async deleteEvent(id: string): Promise<boolean> {
+		try {
+			await post('/api/cal/delete', { id });
+			this.notify(t('cal.deleted'));
+			return true;
+		} catch (err) {
+			this.#failed(err);
+			return false;
+		}
+	}
+
+	/** Answers an invitation in a message. */
+	async respond(id: string, part: string, status: 'accepted' | 'tentative' | 'declined') {
+		try {
+			await post('/api/cal/respond', { id, part, status });
+			this.notify(t(`cal.sent.${status}`));
+			const m = this.full.get(id);
+			if (m?.invite) this.full.set(id, { ...m, invite: { ...m.invite, status: status.toUpperCase() } });
+		} catch (err) {
+			this.#failed(err);
+		}
 	}
 
 	// ─── OpenPGP ───────────────────────────────────────────

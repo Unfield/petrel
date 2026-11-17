@@ -747,7 +747,7 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 	// A sealed message (PGP/MIME) can't be described as JMAP parts: it's
 	// built as MIME and imported.
 	create := invocation{}
-	if m.Seal != nil {
+	if m.Seal != nil || m.Calendar != nil {
 		raw, _, err := build(m, domainOf(m.From.Email))
 		if err != nil {
 			return err

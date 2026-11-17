@@ -147,6 +147,7 @@ docs/                design notes
   - snooze: messages come back to the inbox, unread, on time
   - filters and a vacation reply, run by the mail server as Sieve (ManageSieve for IMAP, JMAP Sieve and VacationResponse for JMAP)
 - **OpenPGP:** encrypt and sign as PGP/MIME; read PGP/MIME and inline PGP and check signatures; keys from Web Key Directories, Autocrypt and attachments. See [OpenPGP](#openpgp)
+- **Calendar:** day, week, month and agenda views of your provider's CalDAV calendars, signed in like your mail; create, change and delete events, repeating ones included. Invitations in mail show as cards: answer yes, maybe or no, and Petrel replies to the organizer and adds the event
 - **Contacts:** an address book with vCard import and export, beside the people learned from your mail
 - **Desktop notifications** for new mail while Petrel is in the background
 - **Yours:**

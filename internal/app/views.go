@@ -77,6 +77,7 @@ type MessageView struct {
 	Body        mail.Body         `json:"body"`
 	Unsubscribe *mail.Unsubscribe `json:"unsubscribe,omitempty"`
 	PGP         *PGPView          `json:"pgp,omitempty"`
+	Invite      *InviteView       `json:"invite,omitempty"`
 }
 
 // UserID is the signed-in user's ID.

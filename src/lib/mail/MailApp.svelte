@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from '@ternkit/tern';
 	import { onMount } from 'svelte';
+	import CalendarView from './CalendarView.svelte';
 	import Compose from './Compose.svelte';
 	import Help from './Help.svelte';
 	import Icon from './Icon.svelte';
@@ -56,6 +57,7 @@
 			}
 			store.loadAccounts();
 			store.loadList();
+			if (location.hash === '#calendar') store.showCalendar();
 			// New mail and changes from other devices arrive here.
 			events = new EventSource('/api/mail/events');
 			events.addEventListener('change', async () => {
@@ -289,12 +291,16 @@
 				</section>
 			</main>
 		{:else}
-			<main class="main" class:reading={!!store.openId && !!store.item(store.openId)} data-layout={layout} bind:this={main}>
-				<MessageList {store} />
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div class="divider" onpointerdown={startResize} ondblclick={() => (store.setPref('listW', 420), store.setPref('listH', 44))}></div>
-				<Reader {store} mobile={layout === 'off'} />
-			</main>
+			{#if store.view === 'calendar'}
+				<main class="main" data-layout="off"><CalendarView {store} /></main>
+			{:else}
+				<main class="main" class:reading={!!store.openId && !!store.item(store.openId)} data-layout={layout} bind:this={main}>
+					<MessageList {store} />
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div class="divider" onpointerdown={startResize} ondblclick={() => (store.setPref('listW', 420), store.setPref('listH', 44))}></div>
+					<Reader {store} mobile={layout === 'off'} />
+				</main>
+			{/if}
 		{/if}
 	</div>
 

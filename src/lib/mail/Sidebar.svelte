@@ -61,11 +61,21 @@
 
 	{#each roles as f (f.id)}
 		{@const n = count(f.id)}
-		<button class="nav-item" class:active={store.folder === f.id} class:has-unread={n > 0} title={t(`m.${f.id}`)} onclick={() => store.go(f.id)}>
+		<button class="nav-item" class:active={store.view === 'mail' && store.folder === f.id} class:has-unread={n > 0} title={t(`m.${f.id}`)} onclick={() => store.go(f.id)}>
 			<Icon name={f.icon} /><span class="label">{t(`m.${f.id}`)}</span>{#if n}<span class="count">{n}</span>{/if}
 		</button>
 	{/each}
 
+	<button class="nav-item" class:active={store.view === 'calendar'} title={t('cal.title')} onclick={() => store.showCalendar()}>
+		<Icon name="calendar" /><span class="label">{t('cal.title')}</span>
+	</button>
+	{#if store.view === 'calendar' && store.calendars.length}
+		{#each store.calendars as c (c.id)}
+			<button class="nav-item cal-item" title="{c.name} · {c.email}" onclick={() => store.toggleCalendar(c.id)} role="switch" aria-checked={!store.hiddenCalendars.has(c.id)}>
+				<span class="cbox" style:--c={c.color} class:off={store.hiddenCalendars.has(c.id)}></span><span class="label">{c.name}<span class="sub">{c.email}</span></span>
+			</button>
+		{/each}
+	{/if}
 	{#if custom.length || canFolders}
 		<div class="nav-sep"></div>
 		<div class="nav-section sec-row">
@@ -184,6 +194,22 @@
 	:global(.app.rail) .fmenu,
 	:global(.app.rail) .naming {
 		display: none;
+	}
+	.cbox {
+		width: 14px;
+		height: 14px;
+		border-radius: 4px;
+		background: var(--c);
+		border: 2px solid var(--c);
+		flex: none;
+		margin-inline: 2px;
+	}
+	.cbox.off {
+		background: transparent;
+	}
+	.cal-item {
+		min-height: 30px;
+		font-size: 13px;
 	}
 	.sec-row {
 		display: flex;

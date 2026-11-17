@@ -336,5 +336,14 @@ func (m *MailAccounts) Message(ctx context.Context, userID int64, message string
 		})
 	}
 	m.openPGP(ctx, userID, p, id, msg, v, message)
+	if v.Invite == nil {
+		me := []string{}
+		if ids, err := m.Identities(ctx, userID); err == nil {
+			for _, i := range ids {
+				me = append(me, i.Email)
+			}
+		}
+		v.Invite = m.invite(ctx, p, id, msg.Attachments, me)
+	}
 	return v, nil
 }

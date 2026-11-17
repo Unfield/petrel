@@ -363,7 +363,13 @@
 		"pgpCantRead": "None of your keys can read this message.",
 		"pgpLocked": "Unlock your OpenPGP key first.",
 		"pgpMissing": "No OpenPGP key for {emails}.",
-		"pgpAgain": "The passphrases don’t match."
+		"pgpAgain": "The passphrases don’t match.",
+		"calRange": "Ask for at most a year of events.",
+		"calUnreachable": "The calendar server couldn’t be reached.",
+		"calServer": "The calendar server: {error}",
+		"calTimes": "The event must end after it starts.",
+		"calAnswer": "Answer yes, maybe or no.",
+		"calNotInvite": "This isn’t an invitation that can be answered."
 	},
 	"acc": {
 		"settings": {
@@ -645,5 +651,73 @@
 				"autocrypt": "From their mail (Autocrypt)"
 			}
 		}
+	},
+	"cal": {
+		"title": "Calendar",
+		"today": "Today",
+		"prev": "Earlier",
+		"next": "Later",
+		"view": "View",
+		"day": "Day",
+		"week": "Week",
+		"month": "Month",
+		"agenda": "Agenda",
+		"new": "New event",
+		"edit": "Edit event",
+		"more": "{n} more",
+		"allDay": "All day",
+		"nothing": "Nothing in the next 30 days.",
+		"none": "No calendars found",
+		"noneSub": "Petrel looks for CalDAV calendars at your mail provider, signed in like your mail. Fastmail, iCloud, Nextcloud, Stalwart and most others have them.",
+		"noCalendars": "No calendar to put it in.",
+		"titlePlaceholder": "Add a title",
+		"untitled": "Untitled event",
+		"repeat": "Repeats",
+		"once": "Doesn’t repeat",
+		"starts": "Starts",
+		"ends": "Ends",
+		"startTime": "Start time",
+		"endTime": "End time",
+		"seriesNote": "Changes apply to every occurrence.",
+		"location": "Location",
+		"description": "Description",
+		"calendar": "Calendar",
+		"organizer": "Organizer",
+		"delete": "Delete",
+		"deleteConfirm": "Delete this event?",
+		"deleteSeries": "Delete every occurrence of this event?",
+		"saved": "Event saved",
+		"deleted": "Event deleted",
+		"r": {
+			"daily": "Every day",
+			"weekly": "Every week",
+			"monthly": "Every month",
+			"yearly": "Every year",
+			"custom": "Custom (kept as it is)"
+		},
+		"ps": {
+			"ACCEPTED": "accepted",
+			"DECLINED": "declined",
+			"TENTATIVE": "maybe",
+			"NEEDS-ACTION": "hasn’t answered"
+		},
+		"invite": "Invitation",
+		"cancelled": "Cancelled",
+		"replyFrom": "Answer",
+		"accept": "Yes",
+		"maybe": "Maybe",
+		"decline": "No",
+		"yours": "Your answer: {status}",
+		"sent": {
+			"accepted": "Accepted, and added to your calendar",
+			"tentative": "Answered maybe, and added to your calendar",
+			"declined": "Declined"
+		},
+		"accepted": "Accepted",
+		"tentative": "Tentatively accepted",
+		"declined": "Declined",
+		"acceptedText": "{name} accepted the invitation to “{title}”.",
+		"tentativeText": "{name} might come to “{title}”.",
+		"declinedText": "{name} declined the invitation to “{title}”."
 	}
 }

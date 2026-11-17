@@ -53,6 +53,8 @@ type Settings struct {
 	// Sieve is the ManageSieve server for filters, when it isn't the
 	// incoming server's host on port 4190.
 	Sieve *Server `json:"sieve,omitempty"`
+	// CalDAV is the calendar server's address, when Petrel can't find it.
+	CalDAV string `json:"caldav,omitempty"`
 }
 
 // Credentials sign in to the servers: a password, or an OAuth token for
@@ -193,6 +195,10 @@ type Outgoing struct {
 	Attachments []File
 	// Headers are more header fields, such as Autocrypt.
 	Headers map[string]string
+	// Calendar is an iCalendar part, such as an answer to an invitation,
+	// sent beside the text with CalendarMethod (REPLY, REQUEST…).
+	Calendar       []byte
+	CalendarMethod string
 	// Seal, if set, wraps the message's content (a MIME entity) before
 	// sending, for PGP/MIME: it returns the outer Content-Type and body.
 	Seal Seal

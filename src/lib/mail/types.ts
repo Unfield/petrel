@@ -46,6 +46,7 @@ export type Message = Summary & {
 	attachments: Attachment[];
 	body: { html: string; plain: boolean; hasRemote: boolean };
 	unsubscribe?: { url?: string; mailto?: string; oneClick?: boolean };
+	invite?: { method: string; part: string; status?: string; event: CalEvent };
 	pgp?: { encrypted: boolean; decrypted: boolean; locked: boolean; error?: string; signature?: { status: 'good' | 'bad' | 'unknown'; email?: string; fingerprint?: string } };
 };
 
@@ -92,5 +93,28 @@ export type Compose = {
 	max: boolean;
 	showCc: boolean;
 };
+
+export type Person = { email: string; name?: string; status?: string };
+
+/** An event, or one occurrence of a repeating one. */
+export type CalEvent = {
+	id: string;
+	href: string;
+	calendar: string;
+	account: number;
+	color: string;
+	uid: string;
+	title: string;
+	start: string;
+	end: string;
+	allDay: boolean;
+	location?: string;
+	description?: string;
+	repeat?: string;
+	organizer?: Person;
+	attendees?: Person[];
+};
+
+export type CalendarInfo = { id: string; account: number; email: string; name: string; color: string };
 
 export type Toast = { id: number; msg: string; undo?: () => void; error?: boolean };

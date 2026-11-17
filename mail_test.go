@@ -660,3 +660,52 @@ func TestPGP(t *testing.T) {
 		t.Errorf("signed: %+v", v.PGP)
 	}
 }
+
+// TestInvitation: an invitation shows in the message, and answering it
+// mails the organizer an iTIP reply.
+func TestInvitation(t *testing.T) {
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	ip, sp, u := mailServer(t)
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	c.PostForm("/settings/mailboxes?/connect", url.Values{
+		"email": {"ada@example.test"}, "name": {"Ada"}, "password": {"secret"}, "protocol": {"imap"},
+		"host": {"127.0.0.1"}, "port": {strconv.Itoa(ip)}, "security": {"plain"},
+		"smtpHost": {"127.0.0.1"}, "smtpPort": {strconv.Itoa(sp)}, "smtpSecurity": {"plain"},
+	})
+	ics := "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Test//EN\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:review-1@example.com\r\nDTSTAMP:20261117T100000Z\r\nDTSTART:20261120T140000Z\r\nDTEND:20261120T150000Z\r\nSUMMARY:Design review\r\nORGANIZER;CN=Lena:mailto:lena@example.com\r\nATTENDEE;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:ada@example.test\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+	raw := "From: Lena <lena@example.com>\r\nTo: ada@example.test\r\nSubject: Invitation: Design review\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nYou're invited.\r\n--b\r\nContent-Type: text/calendar; method=REQUEST; charset=utf-8\r\nContent-Disposition: attachment; filename=invite.ics\r\n\r\n" + ics + "--b--\r\n"
+	if _, err := u.Append("INBOX", lit{bytes.NewReader([]byte(raw)), int64(len(raw))}, &imap.AppendOptions{Time: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	var in list
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox", nil, &in)
+	id := in.Messages[0].ID
+	var v struct {
+		Invite *app.InviteView
+	}
+	api(t, c, "GET", "/api/mail/message?id="+url.QueryEscape(id), nil, &v)
+	if v.Invite == nil || v.Invite.Method != "REQUEST" || v.Invite.Event.Title != "Design review" || v.Invite.Status != "NEEDS-ACTION" {
+		t.Fatalf("invite: %+v", v.Invite)
+	}
+	if s := api(t, c, "POST", "/api/cal/respond", map[string]string{"id": id, "part": v.Invite.Part, "status": "accepted"}, nil); s != 200 {
+		t.Fatalf("respond: %d", s)
+	}
+	// The test server delivers everything to Ada: the reply is there.
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox", nil, &in)
+	var reply string
+	for _, m := range in.Messages {
+		if strings.HasPrefix(m.Subject, "Accepted: Design review") {
+			reply = m.ID
+		}
+	}
+	if reply == "" {
+		t.Fatalf("no reply: %+v", in.Messages)
+	}
+	r := c.Get("/api/mail/raw?id=" + url.QueryEscape(reply))
+	for _, want := range []string{`To: "Lena" <lena@example.com>`, "text/calendar", "method=REPLY", "METHOD:REPLY", "PARTSTAT=ACCEPTED", "review-1@example.com"} {
+		if !strings.Contains(r.Body, want) {
+			t.Errorf("reply lacks %q", want)
+		}
+	}
+}

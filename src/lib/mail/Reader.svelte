@@ -6,7 +6,7 @@
 	import SnoozeMenu from './SnoozeMenu.svelte';
 	import type { MailStore } from './store.svelte';
 	import type { Summary } from './types';
-	import { display, fmtLong, fmtShort, fmtSize, hue, initials } from './util';
+	import { display, fmtLong, fmtShort, fmtSize, hue, initials, locale } from './util';
 
 	let { store, mobile }: { store: MailStore; mobile: boolean } = $props();
 
@@ -205,6 +205,27 @@
 										<button class="btn" onclick={() => store.setPref('images', [...store.prefs.images, s.email])}>{t('m.alwaysShow')}</button>
 									</div>
 								{/if}
+								{#if full.invite}
+									{@const inv = full.invite}
+									{@const ev = inv.event}
+									<div class="invite">
+										<div class="inv-date"><b>{new Date(ev.start).getDate()}</b><span>{new Intl.DateTimeFormat(locale(), { month: 'short' }).format(new Date(ev.start))}</span></div>
+										<div class="inv-main">
+											<div class="inv-kind">{inv.method === 'CANCEL' ? t('cal.cancelled') : t('cal.invite')}</div>
+											<b class:struck={inv.method === 'CANCEL'}>{ev.title}</b>
+											<span>{ev.allDay ? new Intl.DateTimeFormat(locale(), { dateStyle: 'full' }).format(new Date(ev.start)) : `${new Intl.DateTimeFormat(locale(), { dateStyle: 'full', timeStyle: 'short' }).format(new Date(ev.start))} – ${new Intl.DateTimeFormat(locale(), { timeStyle: 'short' }).format(new Date(ev.end))}`}</span>
+											{#if ev.location}<span>{ev.location}</span>{/if}
+											{#if ev.organizer}<span>{t('cal.organizer')}: {ev.organizer.name || ev.organizer.email}</span>{/if}
+											{#if inv.method === 'REQUEST'}
+												<div class="inv-actions">
+													{#each [['accepted', 'cal.accept', 'ACCEPTED'], ['tentative', 'cal.maybe', 'TENTATIVE'], ['declined', 'cal.decline', 'DECLINED']] as const as [s, label, code] (s)}
+														<button class="btn sm" class:primary={inv.status === code} onclick={() => store.respond(m.id, inv.part, s)}>{t(label)}</button>
+													{/each}
+												</div>
+											{/if}
+										</div>
+									</div>
+								{/if}
 								<div class="msg-body"><MessageBody html={full.body.html} plain={full.body.plain} images={imagesOn(m)} messageId={m.id} /></div>
 								{#if files.length}
 									<div class="atts">
@@ -242,6 +263,61 @@
 </section>
 
 <style>
+	.invite {
+		display: flex;
+		gap: 14px;
+		margin: 0 18px 12px;
+		padding: 12px 14px;
+		border: 1px solid var(--border);
+		border-radius: 12px;
+		background: var(--surface-2);
+	}
+	.inv-date {
+		display: grid;
+		justify-items: center;
+		align-content: start;
+		min-width: 46px;
+		padding: 6px 0;
+		border-radius: 10px;
+		background: var(--surface);
+		border: 1px solid var(--border);
+	}
+	.inv-date b {
+		font-size: 20px;
+		line-height: 1.1;
+	}
+	.inv-date span {
+		font-size: 11px;
+		text-transform: uppercase;
+		color: var(--danger);
+		font-weight: 650;
+	}
+	.inv-main {
+		display: grid;
+		gap: 2px;
+		font-size: 13px;
+		color: var(--text-2);
+		min-width: 0;
+	}
+	.inv-main b {
+		font-size: 15px;
+		color: var(--text);
+	}
+	.inv-main b.struck {
+		text-decoration: line-through;
+	}
+	.inv-kind {
+		font-size: 11px;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--text-3);
+		font-weight: 650;
+	}
+	.inv-actions {
+		display: flex;
+		gap: 6px;
+		margin-top: 8px;
+	}
 	.pgp {
 		display: flex;
 		align-items: center;

@@ -25,6 +25,8 @@ require (
 	github.com/coreos/go-oidc/v3 v3.21.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.2.1 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
+	github.com/emersion/go-ical v0.0.0-20261112170022-46c5b53a1723 // indirect
+	github.com/emersion/go-webdav v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -32,6 +34,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/ncruces/go-strftime v1.1.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/teambition/rrule-go v1.8.2 // indirect
 	github.com/yuin/goldmark v1.8.7 // indirect
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect

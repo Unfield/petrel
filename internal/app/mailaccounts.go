@@ -172,6 +172,7 @@ func (m *MailAccounts) Delete(ctx context.Context, userID, id int64) error {
 	_, _ = m.db.ExecContext(ctx, `DELETE FROM pop3_flags WHERE account_id = ?`, id)
 	_, _ = m.db.ExecContext(ctx, `DELETE FROM identities WHERE account_id = ?`, id)
 	_, _ = m.db.ExecContext(ctx, `DELETE FROM mail_rules WHERE account_id = ?`, id)
+	forgetCalendars(id)
 	m.mu.Lock()
 	if c, ok := m.providers[id]; ok {
 		c.p.Close()

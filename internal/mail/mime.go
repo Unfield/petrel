@@ -241,6 +241,22 @@ func writeContent(buf *bytes.Buffer, h gomail.Header, m Outgoing) error {
 			return err
 		}
 	}
+	if m.Calendar != nil {
+		var ph gomail.InlineHeader
+		ph.SetContentType("text/calendar", map[string]string{"charset": "utf-8", "method": m.CalendarMethod})
+		// iCalendar folds its lines short: sent as it is, as calendars expect.
+		ph.Set("Content-Transfer-Encoding", "8bit")
+		pw, err := w.CreatePart(ph)
+		if err != nil {
+			return err
+		}
+		if _, err := pw.Write(m.Calendar); err != nil {
+			return err
+		}
+		if err := pw.Close(); err != nil {
+			return err
+		}
+	}
 	if err := w.Close(); err != nil {
 		return err
 	}
