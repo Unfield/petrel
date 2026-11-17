@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- `PETREL_EXTRA_PORTS` allows more ports on public addresses, for servers outside the usual ports, such as a calendar server on 8443.
+
 ## [0.1.0] - 2026-11-17
 
 The first release: a webmail client for any IMAP, JMAP or POP3 mailbox, in English and German. See the [README](README.md#features) for the full feature list and settings.

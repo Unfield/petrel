@@ -28,6 +28,22 @@ var mailPorts = map[int]bool{
 	4190: true, // ManageSieve
 }
 
+// extraPorts are more ports the admin allows, on public addresses only,
+// such as a calendar server on 8443. Set once at startup by AllowPorts.
+var extraPorts = map[int]bool{}
+
+// AllowPorts lets Petrel connect to more ports than the mail ones, for
+// servers the admin knows of. Call it before any connection is made.
+func AllowPorts(ports ...int) {
+	for _, p := range ports {
+		if p > 0 && p < 65536 {
+			extraPorts[p] = true
+		}
+	}
+}
+
+func portAllowed(p int) bool { return mailPorts[p] || extraPorts[p] }
+
 func dialer(allowPrivate bool) *net.Dialer {
 	return &net.Dialer{
 		Timeout:   15 * time.Second,
@@ -41,7 +57,7 @@ func dialer(allowPrivate bool) *net.Dialer {
 				return ErrBlocked
 			}
 			ip := ap.Addr().Unmap()
-			if !mailPorts[int(ap.Port())] || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() ||
+			if !portAllowed(int(ap.Port())) || !ip.IsGlobalUnicast() || ip.IsPrivate() || ip.IsLoopback() ||
 				ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() || isShared(ip) {
 				return ErrBlocked
 			}

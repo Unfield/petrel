@@ -82,6 +82,7 @@ Petrel reads its settings from the environment, and `tern dev` also from a `.env
 | `TRUSTED_PROXIES` | your reverse proxies' addresses, comma-separated |
 | `PETREL_SECRET_KEY` | at least 32 random characters: encrypts saved mailbox passwords. Without it, Petrel makes `petrel.key` beside the database; back it up with the database |
 | `PETREL_ALLOW_PRIVATE_HOSTS` | `true` lets mailboxes on private addresses and any port connect, for local test servers. Never set it on a public instance |
+| `PETREL_EXTRA_PORTS` | more ports Petrel may connect to on public addresses, separated by commas, such as `8443` for a calendar server there. Mail ports, 80, 443 and 4190 are always allowed |
 | `PETREL_AUTH_MODE`, `PETREL_DIRECT_SERVERS` | sign in with the mailbox itself: see [Direct sign-in](#direct-sign-in) |
 | `PETREL_TEAMS` | `true` shows teams: invitations, roles and a Team page. Off by default; everyone has a team of their own either way |
 | `PETREL_CA_FILE` | a PEM file of extra certificate authorities to trust for mail servers, such as a company's own CA or a local test server's self-signed certificate |

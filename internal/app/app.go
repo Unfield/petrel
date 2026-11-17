@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
 	_ "modernc.org/sqlite"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/Unfield/Tern/jobs"
 	"github.com/Unfield/Tern/mail"
 	"github.com/Unfield/Tern/plugins/oauth"
+
+	pmail "petrel/internal/mail"
 )
 
 // App is the running app's shared parts.
@@ -75,6 +78,13 @@ func Open(logger *slog.Logger) (*App, error) {
 	// PETREL_ALLOW_PRIVATE_HOSTS lets mailboxes on private addresses and any
 	// port connect: for local test servers, never on a public instance.
 	allowPrivate := os.Getenv("PETREL_ALLOW_PRIVATE_HOSTS") == "true"
+	// PETREL_EXTRA_PORTS allows more ports on public addresses, such as a
+	// calendar server on 8443.
+	ports, err := extraPorts(os.Getenv("PETREL_EXTRA_PORTS"))
+	if err != nil {
+		return nil, err
+	}
+	pmail.AllowPorts(ports...)
 	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate), oauth: mailProviders(), Teams: os.Getenv("PETREL_TEAMS") == "true"}
 	a.Mail.oauth = a.oauth
 	if a.direct, err = loadDirect(); err != nil {
@@ -148,4 +158,17 @@ func env(key, def string) string {
 		return v
 	}
 	return def
+}
+
+// extraPorts reads PETREL_EXTRA_PORTS: ports separated by commas or spaces.
+func extraPorts(s string) ([]int, error) {
+	var out []int
+	for _, f := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == ' ' }) {
+		p, err := strconv.Atoi(f)
+		if err != nil || p < 1 || p > 65535 {
+			return nil, fmt.Errorf("app: PETREL_EXTRA_PORTS: %q isn't a port", f)
+		}
+		out = append(out, p)
+	}
+	return out, nil
 }
