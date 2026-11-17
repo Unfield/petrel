@@ -171,6 +171,7 @@ func (m *MailAccounts) Delete(ctx context.Context, userID, id int64) error {
 	}
 	_, _ = m.db.ExecContext(ctx, `DELETE FROM pop3_flags WHERE account_id = ?`, id)
 	_, _ = m.db.ExecContext(ctx, `DELETE FROM identities WHERE account_id = ?`, id)
+	_, _ = m.db.ExecContext(ctx, `DELETE FROM mail_rules WHERE account_id = ?`, id)
 	m.mu.Lock()
 	if c, ok := m.providers[id]; ok {
 		c.p.Close()
@@ -358,7 +359,7 @@ func (m *MailAccounts) DeleteUser(ctx context.Context, userID int64) error {
 			return err
 		}
 	}
-	for _, table := range []string{"uploads", "contacts", "user_prefs", "snoozes", "identities"} {
+	for _, table := range []string{"uploads", "contacts", "user_prefs", "snoozes", "identities", "mail_rules"} {
 		if _, err := m.db.ExecContext(ctx, `DELETE FROM `+table+` WHERE user_id = ?`, userID); err != nil {
 			return err
 		}

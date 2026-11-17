@@ -8,7 +8,8 @@
 #   PETREL_JMAP_PASSWORD=petrel-jmap-test go test ./internal/mail -run JMAP
 #
 # PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_POP3=127.0.0.1:2995 PETREL_REAL_SMTP=127.0.0.1:2465
-# also test IMAP, POP3 and SMTP over TLS against it (TestRealServers).
+# also test IMAP, POP3 and SMTP over TLS against it (TestRealServers), and
+# PETREL_REAL_SIEVE=127.0.0.1:24190 filters and vacation replies (TestRealSieve).
 # Sam has a 100 MB quota, for the storage meter.
 #
 # Remove it with: docker rm -f petrel-stalwart
@@ -16,7 +17,7 @@ set -eu
 NAME=petrel-stalwart
 PASS=petrel-jmap-test
 docker rm -f "$NAME" >/dev/null 2>&1 || true
-docker run -d --name "$NAME" -p 80:8080 -p 8080:8080 -p 2143:143 -p 2993:993 -p 2995:995 -p 2465:465 -p 2587:587 -p 2110:110 -p 2025:25 stalwartlabs/stalwart:latest >/dev/null
+docker run -d --name "$NAME" -p 80:8080 -p 8080:8080 -p 2143:143 -p 2993:993 -p 2995:995 -p 2465:465 -p 2587:587 -p 2110:110 -p 2025:25 -p 24190:4190 stalwartlabs/stalwart:latest >/dev/null
 until curl -s -o /dev/null http://127.0.0.1:8080/; do sleep 1; done
 sleep 1
 BOOT=$(docker logs "$NAME" 2>&1 | sed -n 's/^ *password: *//p' | head -1)

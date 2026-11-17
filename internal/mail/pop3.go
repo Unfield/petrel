@@ -3,8 +3,8 @@ package mail
 import (
 	"bufio"
 	"bytes"
-	"crypto/tls"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"

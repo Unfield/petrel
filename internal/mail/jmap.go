@@ -215,6 +215,18 @@ func (p *jmapProvider) Mailboxes(ctx context.Context) ([]Mailbox, error) {
 		return nil, err
 	}
 	out := make([]Mailbox, 0, len(list))
+	byID := map[string]jmapMailbox{}
+	for _, m := range list {
+		byID[m.ID] = m
+	}
+	path := func(m jmapMailbox) string {
+		p := m.Name
+		for i := 0; m.ParentID != "" && i < 20; i++ {
+			m = byID[m.ParentID]
+			p = m.Name + "/" + p
+		}
+		return p
+	}
 	for _, m := range list {
 		role := m.Role
 		if _, known := roleOrder[role]; !known {
@@ -224,7 +236,7 @@ func (p *jmapProvider) Mailboxes(ctx context.Context) ([]Mailbox, error) {
 		if role == RoleInbox {
 			name = "Inbox"
 		}
-		out = append(out, Mailbox{ID: m.ID, Name: name, Role: role, Total: m.TotalEmails, Unread: m.UnreadEmails})
+		out = append(out, Mailbox{ID: m.ID, Name: name, Role: role, Total: m.TotalEmails, Unread: m.UnreadEmails, Path: path(m)})
 	}
 	sort.SliceStable(out, func(i, j int) bool {
 		oi, iok := roleOrder[out[i].Role]
@@ -246,26 +258,26 @@ type jmapAddr struct {
 }
 
 type jmapEmail struct {
-	ID            string              `json:"id"`
-	ThreadID      string              `json:"threadId"`
-	MailboxIDs    map[string]bool     `json:"mailboxIds"`
-	Keywords      map[string]bool     `json:"keywords"`
-	From          []jmapAddr          `json:"from"`
-	To            []jmapAddr          `json:"to"`
-	Cc            []jmapAddr          `json:"cc"`
-	Bcc           []jmapAddr          `json:"bcc"`
-	ReplyTo       []jmapAddr          `json:"replyTo"`
-	Subject       string              `json:"subject"`
-	Preview       string              `json:"preview"`
-	ReceivedAt    time.Time           `json:"receivedAt"`
-	SentAt        *time.Time          `json:"sentAt"`
-	HasAttachment bool                `json:"hasAttachment"`
-	MessageID     []string            `json:"messageId"`
-	InReplyTo     []string            `json:"inReplyTo"`
-	References    []string            `json:"references"`
-	TextBody      []jmapPart          `json:"textBody"`
-	HTMLBody      []jmapPart          `json:"htmlBody"`
-	Attachments   []jmapPart          `json:"attachments"`
+	ID            string               `json:"id"`
+	ThreadID      string               `json:"threadId"`
+	MailboxIDs    map[string]bool      `json:"mailboxIds"`
+	Keywords      map[string]bool      `json:"keywords"`
+	From          []jmapAddr           `json:"from"`
+	To            []jmapAddr           `json:"to"`
+	Cc            []jmapAddr           `json:"cc"`
+	Bcc           []jmapAddr           `json:"bcc"`
+	ReplyTo       []jmapAddr           `json:"replyTo"`
+	Subject       string               `json:"subject"`
+	Preview       string               `json:"preview"`
+	ReceivedAt    time.Time            `json:"receivedAt"`
+	SentAt        *time.Time           `json:"sentAt"`
+	HasAttachment bool                 `json:"hasAttachment"`
+	MessageID     []string             `json:"messageId"`
+	InReplyTo     []string             `json:"inReplyTo"`
+	References    []string             `json:"references"`
+	TextBody      []jmapPart           `json:"textBody"`
+	HTMLBody      []jmapPart           `json:"htmlBody"`
+	Attachments   []jmapPart           `json:"attachments"`
 	BodyValues    map[string]bodyValue `json:"bodyValues"`
 }
 
@@ -710,8 +722,8 @@ func (p *jmapProvider) Send(ctx context.Context, m Outgoing) error {
 	res, err = p.call(ctx, []string{capSubmission},
 		invocation{"Email/set", map[string]any{"accountId": acc, "create": map[string]any{"draft": email}}, "e"},
 		invocation{"EmailSubmission/set", map[string]any{
-			"accountId": acc,
-			"create":    map[string]any{"sub": map[string]any{"identityId": identity, "emailId": "#draft"}},
+			"accountId":            acc,
+			"create":               map[string]any{"sub": map[string]any{"identityId": identity, "emailId": "#draft"}},
 			"onSuccessUpdateEmail": map[string]any{"#sub": onSuccess},
 		}, "s"},
 	)
@@ -753,7 +765,7 @@ func (p *jmapProvider) SaveDraft(ctx context.Context, m Outgoing, replace string
 	}
 	var sr struct {
 		Created    map[string]struct{ ID string } `json:"created"`
-		NotCreated map[string]json.RawMessage      `json:"notCreated"`
+		NotCreated map[string]json.RawMessage     `json:"notCreated"`
 	}
 	_ = json.Unmarshal(res["s"], &sr)
 	for _, e := range sr.NotCreated {

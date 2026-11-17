@@ -2,6 +2,7 @@
 	import { enhance, t } from '@ternkit/tern';
 	import { Alert, Badge, Button, Card } from '@ternkit/tern/ui';
 	import SignatureEditor from '$lib/SignatureEditor.svelte';
+	import Filters from '$lib/Filters.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -9,6 +10,13 @@
 	// Which identity's form the last answer is about.
 	let editing = $state<number>(-1);
 	let adding = $state(false);
+	let vacationOn = $state(false);
+	$effect.pre(() => {
+		vacationOn = data.filters.vacation.enabled;
+	});
+	// A refused save of the filters echoes the rules back.
+	const filtersError = $derived(f && !f.done && (form as { values?: { rules?: string } } | null)?.values?.rules !== undefined ? f.message : undefined);
+	const today = new Date().toISOString().slice(0, 10);
 </script>
 
 <svelte:head><title>{data.account.email} · Petrel</title></svelte:head>
@@ -68,6 +76,51 @@
 		</Card>
 	{/each}
 
+	<Card title={t('acc.v.title')} level={2}>
+		{#if !data.filters.vacationSupported}
+			<p class="muted">{t('acc.v.unsupported')}</p>
+		{:else}
+			<form
+				class="grid"
+				method="POST"
+				action="?/vacation"
+				use:enhance={() => {
+					editing = -2;
+					return async ({ update }) => update({ reset: false });
+				}}
+			>
+				<label class="check"><input type="checkbox" name="enabled" value="true" bind:checked={vacationOn} />{t('acc.v.on')}</label>
+				<div class="dates">
+					<label>{t('acc.v.from')}<input type="date" name="from" value={data.filters.vacation.from} min={today} disabled={!vacationOn} /></label>
+					<label>{t('acc.v.until')}<input type="date" name="until" value={data.filters.vacation.until} min={today} disabled={!vacationOn} /></label>
+				</div>
+				{#if editing === -2 && f?.errors?.until}<span class="err">{f.errors.until}</span>{/if}
+				<label>{t('acc.v.subject')}<input name="subject" value={data.filters.vacation.subject} placeholder={t('acc.v.subjectPlaceholder')} disabled={!vacationOn} /></label>
+				<label>{t('acc.v.text')}<textarea name="text" rows="5" disabled={!vacationOn}>{data.filters.vacation.text}</textarea></label>
+				{#if editing === -2 && f?.errors?.text}<span class="err">{f.errors.text}</span>{/if}
+				<p class="hint">{t('acc.v.hint')}</p>
+				{#if editing === -2 && f?.message && !f.done}<Alert tone="danger" live>{f.message}</Alert>{/if}
+				{#if f?.done === 'vacation'}<Alert tone="success" live>{vacationOn ? t('acc.v.savedOn') : t('acc.v.savedOff')}</Alert>{/if}
+				<div class="row"><Button type="submit" size="sm">{t('acc.settings.save')}</Button></div>
+			</form>
+		{/if}
+	</Card>
+
+	<Card title={t('acc.f.title')} level={2}>
+		{#if !data.filters.supported}
+			<p class="muted">{t('acc.f.unsupported')}</p>
+		{:else}
+			<p class="muted intro">{t('acc.f.lead')}</p>
+			{#if data.filters.otherScript}<Alert tone="warning">{t('acc.f.other', { name: data.filters.otherScript })}</Alert>{/if}
+			<Filters
+				rules={data.filters.rules}
+				folders={data.folders}
+				saved={f?.done === 'filters'}
+				message={filtersError}
+			/>
+		{/if}
+	</Card>
+
 	{#if adding}
 		<Card title={t('acc.box.add')} level={2}>
 			{@render identityForm({ id: 0, name: data.identities[0]?.name ?? '', email: '', replyTo: '', signature: data.identities[0]?.signature ?? '', default: false })}
@@ -97,4 +150,14 @@
 	input[readonly] { color: var(--tern-muted); }
 	input:focus { outline: 2px solid var(--tern-ring); outline-offset: 1px; }
 	.row { display: flex; gap: 0.5rem; }
+	.muted { color: var(--tern-muted); margin: 0; }
+	.intro { margin-bottom: 0.75rem; }
+	.check { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; }
+	.check input { height: auto; width: 1.05rem; height: 1.05rem; }
+	.dates { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+	textarea {
+		font: inherit; font-weight: 400; padding: 0.6rem 0.75rem; border-radius: var(--tern-radius-sm, 8px); resize: vertical;
+		border: 1px solid var(--tern-border-strong); background: var(--tern-surface); color: var(--tern-fg);
+	}
+	input:disabled, textarea:disabled { opacity: 0.55; }
 </style>

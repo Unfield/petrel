@@ -419,4 +419,15 @@ func TestIdentities(t *testing.T) {
 	if p := c.PostForm(page+"?/remove", url.Values{"id": {strconv.FormatInt(ids[1].ID, 10)}}); p.Status != 200 {
 		t.Errorf("remove: %d", p.Status)
 	}
+	// The test server has no Sieve: the page says so, and filters are refused.
+	if p := c.Get(page); !strings.Contains(p.Body, "doesn’t run filters") {
+		t.Error("filters offered without Sieve")
+	}
+	rules := `[{"name":"News","enabled":true,"if":[{"field":"list","op":"contains","value":"news"}],"then":[{"type":"read"}]}]`
+	if p := c.PostForm(page+"?/filters", url.Values{"rules": {rules}}); p.Status != 400 || !strings.Contains(p.Body, "no Sieve") {
+		t.Errorf("filters without Sieve: %d %s", p.Status, p.Body)
+	}
+	if p := c.PostForm(page+"?/filters", url.Values{"rules": {`[{"name":"Bad","enabled":true,"if":[],"then":[]}]`}}); p.Status != 400 || !strings.Contains(p.Body, "Bad") {
+		t.Errorf("an empty rule: %d", p.Status)
+	}
 }

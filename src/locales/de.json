@@ -282,7 +282,14 @@
 		"identityEmail": "Gib die Adresse ein, mit der du senden willst.",
 		"identityDefault": "Die eigene Adresse eines Postfachs kann nicht entfernt werden.",
 		"identityAccount": "Dieser Absender gehört zu einem anderen Postfach.",
-		"signatureLong": "Die Signatur ist zu lang."
+		"signatureLong": "Die Signatur ist zu lang.",
+		"tooManyRules": "Das sind mehr Filter, als Petrel speichert (200).",
+		"rule": "Prüfe den Filter „{name}“: Jeder braucht eine Bedingung und eine Aktion, vollständig ausgefüllt.",
+		"vacationDates": "Prüfe die Daten: Der letzte Tag kann nicht vor dem ersten liegen.",
+		"vacationText": "Schreib die Antwort, die andere bekommen.",
+		"noSieve": "Der Server dieses Postfachs führt keine Filter aus (er hat kein Sieve).",
+		"sieve": "Der Server hat die Filter abgelehnt: {reason}",
+		"rulesJSON": "Die Filter konnten nicht gelesen werden. Lade die Seite neu und versuch es noch einmal."
 	},
 	"acc": {
 		"settings": {
@@ -430,6 +437,78 @@
 			"format": "Formatierung",
 			"plain": "Formatierung entfernen",
 			"settings": "Einstellungen"
+		},
+		"v": {
+			"title": "Abwesenheitsnotiz",
+			"unsupported": "Der Server dieses Postfachs kann keine automatischen Antworten senden.",
+			"on": "Automatisch antworten, während ich weg bin",
+			"from": "Erster Tag",
+			"until": "Letzter Tag",
+			"subject": "Betreff",
+			"subjectPlaceholder": "Abwesend bis …",
+			"text": "Nachricht",
+			"hint": "Jeder Absender bekommt die Antwort höchstens einmal am Tag. Mailinglisten und automatische Mails bekommen keine. Lass die Tage leer, um zu antworten, bis du sie ausschaltest.",
+			"savedOn": "Die Abwesenheitsnotiz ist an.",
+			"savedOff": "Die Abwesenheitsnotiz ist aus."
+		},
+		"f": {
+			"title": "Filter",
+			"lead": "Dein Mailserver wendet sie auf neue Mails an, sobald sie ankommen, auch wenn Petrel geschlossen ist. Jeder passende Filter greift, von oben nach unten, bis einer sagt, dass Schluss ist.",
+			"unsupported": "Der Server dieses Postfachs führt keine Filter aus: Er hat kein Sieve. Gmail und Outlook haben ihre Filter in ihren eigenen Einstellungen.",
+			"other": "Dein Server führt ein anderes Filterskript aus, „{name}“. Speichern hier ersetzt es.",
+			"saved": "Gespeichert. Der Server wendet die Filter ab jetzt an.",
+			"none": "Noch keine Filter.",
+			"new": "Neuer Filter",
+			"edit": "Bearbeiten",
+			"up": "Nach oben",
+			"down": "Nach unten",
+			"enabled": "Filter „{name}“ an",
+			"name": "Name",
+			"namePlaceholder": "Newsletter",
+			"untitled": "Filter",
+			"when": "Wenn eine neue Mail passt auf",
+			"match": "Welche Bedingungen passen müssen",
+			"all": "alle davon",
+			"any": "eine davon",
+			"then": "dann",
+			"fieldLabel": "Teil der Mail",
+			"opLabel": "Vergleich",
+			"value": "Wert",
+			"header": "Header-Name",
+			"addCondition": "Bedingung hinzufügen",
+			"addAction": "Aktion hinzufügen",
+			"actionLabel": "Aktion",
+			"folder": "Ordner",
+			"labelPlaceholder": "Name des Labels",
+			"or": "oder",
+			"and": "und",
+			"field": {
+				"from": "Von",
+				"to": "An oder Cc",
+				"subject": "Betreff",
+				"body": "Text",
+				"list": "Mailingliste",
+				"size": "Größe",
+				"header": "Header"
+			},
+			"op": {
+				"contains": "enthält",
+				"notContains": "enthält nicht",
+				"is": "ist",
+				"matches": "passt auf (* und ?)",
+				"over": "ist größer als",
+				"under": "ist kleiner als"
+			},
+			"do": {
+				"move": "Verschieben nach",
+				"copy": "Kopieren nach",
+				"label": "Label",
+				"read": "Als gelesen markieren",
+				"star": "Markieren",
+				"forward": "Weiterleiten an",
+				"delete": "Löschen",
+				"stop": "Weitere Filter stoppen"
+			}
 		}
 	},
 	"tern": {

@@ -25,6 +25,7 @@ var ErrBlocked = errors.New("mail: that server's address isn't allowed")
 var mailPorts = map[int]bool{
 	25: true, 110: true, 143: true, 465: true, 587: true, 993: true, 995: true, 2525: true,
 	80: true, 443: true, // JMAP and autoconfig over HTTPS
+	4190: true, // ManageSieve
 }
 
 func dialer(allowPrivate bool) *net.Dialer {

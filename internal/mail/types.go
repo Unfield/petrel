@@ -50,6 +50,9 @@ type Settings struct {
 	// JMAPURL is the JMAP session resource, such as
 	// https://example.com/.well-known/jmap.
 	JMAPURL string `json:"jmapUrl,omitempty"`
+	// Sieve is the ManageSieve server for filters, when it isn't the
+	// incoming server's host on port 4190.
+	Sieve *Server `json:"sieve,omitempty"`
 }
 
 // Credentials sign in to the servers: a password, or an OAuth token for
@@ -85,6 +88,9 @@ type Mailbox struct {
 	Role   string `json:"role,omitempty"`
 	Total  int    `json:"total"`
 	Unread int    `json:"unread"`
+	// Path is the full name on the server, such as "Work/Clients", which
+	// Sieve's fileinto uses.
+	Path string `json:"path,omitempty"`
 }
 
 // Address is a person or a mailbox.

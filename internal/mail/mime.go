@@ -14,8 +14,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	_ "github.com/emersion/go-message/charset" // decode every charset mail uses
 	"github.com/emersion/go-message"
+	_ "github.com/emersion/go-message/charset" // decode every charset mail uses
 	gomail "github.com/emersion/go-message/mail"
 )
 

@@ -34,7 +34,9 @@ func testServer(t *testing.T) (Settings, Credentials, *imapmemserver.User) {
 	}
 	mem.AddUser(u)
 	srv := imapserver.New(&imapserver.Options{
-		NewSession:   func(*imapserver.Conn) (imapserver.Session, *imapserver.GreetingData, error) { return mem.NewSession(), nil, nil },
+		NewSession: func(*imapserver.Conn) (imapserver.Session, *imapserver.GreetingData, error) {
+			return mem.NewSession(), nil, nil
+		},
 		Caps:         imap.CapSet{imap.CapIMAP4rev1: {}, imap.CapIMAP4rev2: {}},
 		InsecureAuth: true,
 	})
@@ -67,10 +69,10 @@ func (d deliverTo) NewSession(*smtp.Conn) (smtp.Session, error) { return &sess{u
 
 type sess struct{ u *imapmemserver.User }
 
-func (s *sess) Mail(string, *smtp.MailOptions) error  { return nil }
-func (s *sess) Rcpt(string, *smtp.RcptOptions) error  { return nil }
-func (s *sess) Reset()                                {}
-func (s *sess) Logout() error                         { return nil }
+func (s *sess) Mail(string, *smtp.MailOptions) error { return nil }
+func (s *sess) Rcpt(string, *smtp.RcptOptions) error { return nil }
+func (s *sess) Reset()                               {}
+func (s *sess) Logout() error                        { return nil }
 func (s *sess) Data(r io.Reader) error {
 	b, _ := io.ReadAll(r)
 	_, err := s.u.Append("INBOX", lit{bytes.NewReader(b), int64(len(b))}, &imap.AppendOptions{})

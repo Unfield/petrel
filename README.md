@@ -52,7 +52,7 @@ To also test JMAP, and IMAP, POP3 and SMTP over TLS, against a real mail server,
 ./scripts/stalwart-test.sh
 PETREL_JMAP_URL=http://127.0.0.1:8080/.well-known/jmap \
 PETREL_JMAP_USER1=sam@petrel.test PETREL_JMAP_USER2=lena@petrel.test PETREL_JMAP_PASSWORD=petrel-jmap-test \
-PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_SMTP=127.0.0.1:2465 PETREL_REAL_POP3=127.0.0.1:2995 \
+PETREL_REAL_IMAP=127.0.0.1:2993 PETREL_REAL_SMTP=127.0.0.1:2465 PETREL_REAL_POP3=127.0.0.1:2995 PETREL_REAL_SIEVE=127.0.0.1:24190 \
 go test ./internal/mail -run 'JMAP|RealServers' -v
 ```
 
@@ -142,6 +142,7 @@ docs/                design notes
   - archive, delete and spam with undo; move to any folder
   - star; labels, stored as IMAP and JMAP keywords
   - snooze: messages come back to the inbox, unread, on time
+  - filters and a vacation reply, run by the mail server as Sieve (ManageSieve for IMAP, JMAP Sieve and VacationResponse for JMAP)
 - **Yours:**
   - light, dark and system mode; four themes; accent colors; three densities; three layouts
   - English and German, plus a mirrored right-to-left layout

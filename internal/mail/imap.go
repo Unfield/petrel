@@ -232,7 +232,7 @@ func (p *imapProvider) listBoxes(cl *imapclient.Client) ([]Mailbox, map[string]s
 				st = &imap.StatusData{}
 			}
 		}
-		b := Mailbox{ID: encBox(d.Mailbox), Name: leafName(d), Role: role}
+		b := Mailbox{ID: encBox(d.Mailbox), Name: leafName(d), Role: role, Path: d.Mailbox}
 		if role == RoleInbox {
 			b.Name = "Inbox"
 		}

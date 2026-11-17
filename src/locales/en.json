@@ -282,7 +282,14 @@
 		"identityEmail": "Enter the email address to send as.",
 		"identityDefault": "A mailbox’s own address can’t be removed.",
 		"identityAccount": "That sender belongs to another mailbox.",
-		"signatureLong": "The signature is too long."
+		"signatureLong": "The signature is too long.",
+		"tooManyRules": "That’s more filters than Petrel keeps (200).",
+		"rule": "Check the filter “{name}”: each needs a condition and an action, all filled in.",
+		"vacationDates": "Check the dates: the last day can’t be before the first.",
+		"vacationText": "Write the reply people get.",
+		"noSieve": "This mailbox’s server doesn’t run filters (it has no Sieve).",
+		"sieve": "The server refused the filters: {reason}",
+		"rulesJSON": "The filters couldn’t be read. Reload the page and try again."
 	},
 	"acc": {
 		"settings": {
@@ -430,6 +437,78 @@
 			"format": "Formatting",
 			"plain": "Remove formatting",
 			"settings": "Settings"
+		},
+		"v": {
+			"title": "Vacation reply",
+			"unsupported": "This mailbox’s server can’t send automatic replies.",
+			"on": "Reply automatically while I’m away",
+			"from": "First day",
+			"until": "Last day",
+			"subject": "Subject",
+			"subjectPlaceholder": "Away until …",
+			"text": "Message",
+			"hint": "Each sender gets the reply once a day at most. Mailing lists and automatic mail get none. Leave the days empty to reply until you turn it off.",
+			"savedOn": "The vacation reply is on.",
+			"savedOff": "The vacation reply is off."
+		},
+		"f": {
+			"title": "Filters",
+			"lead": "Your mail server runs these on new mail as it arrives, even while Petrel is closed. Every matching filter applies, top to bottom, until one says to stop.",
+			"unsupported": "This mailbox’s server doesn’t run filters: it has no Sieve. Gmail and Outlook keep their filters in their own settings.",
+			"other": "Your server runs another filter script, “{name}”. Saving here replaces it.",
+			"saved": "Saved. The server runs the filters from now on.",
+			"none": "No filters yet.",
+			"new": "New filter",
+			"edit": "Edit",
+			"up": "Move up",
+			"down": "Move down",
+			"enabled": "Filter “{name}” on",
+			"name": "Name",
+			"namePlaceholder": "Newsletters",
+			"untitled": "Filter",
+			"when": "When a new message matches",
+			"match": "Which conditions must match",
+			"all": "all of these",
+			"any": "any of these",
+			"then": "then",
+			"fieldLabel": "Part of the message",
+			"opLabel": "How it compares",
+			"value": "Value",
+			"header": "Header name",
+			"addCondition": "Add a condition",
+			"addAction": "Add an action",
+			"actionLabel": "Action",
+			"folder": "Folder",
+			"labelPlaceholder": "Label name",
+			"or": "or",
+			"and": "and",
+			"field": {
+				"from": "From",
+				"to": "To or Cc",
+				"subject": "Subject",
+				"body": "Text",
+				"list": "Mailing list",
+				"size": "Size",
+				"header": "Header"
+			},
+			"op": {
+				"contains": "contains",
+				"notContains": "doesn’t contain",
+				"is": "is",
+				"matches": "matches (* and ?)",
+				"over": "is over",
+				"under": "is under"
+			},
+			"do": {
+				"move": "Move to",
+				"copy": "Copy to",
+				"label": "Label",
+				"read": "Mark as read",
+				"star": "Star",
+				"forward": "Forward to",
+				"delete": "Delete",
+				"stop": "Stop other filters"
+			}
 		}
 	}
 }
