@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net"
@@ -34,7 +35,9 @@ func mailServer(t *testing.T) (imapPort, smtpPort int, u *imapmemserver.User) {
 	}
 	mem.AddUser(u)
 	srv := imapserver.New(&imapserver.Options{
-		NewSession:   func(*imapserver.Conn) (imapserver.Session, *imapserver.GreetingData, error) { return mem.NewSession(), nil, nil },
+		NewSession: func(*imapserver.Conn) (imapserver.Session, *imapserver.GreetingData, error) {
+			return mem.NewSession(), nil, nil
+		},
 		Caps:         imap.CapSet{imap.CapIMAP4rev1: {}, imap.CapIMAP4rev2: {}},
 		InsecureAuth: true,
 	})
@@ -352,5 +355,68 @@ func TestDeleteAccount(t *testing.T) {
 	app.Current.DB.QueryRow(`SELECT COUNT(*) FROM mail_accounts`).Scan(&n)
 	if n != 0 {
 		t.Errorf("the mailbox and its password stayed after deleting the account")
+	}
+}
+
+// TestIdentities: sending as another address of the mailbox, with its own
+// name, Reply-To and signature.
+func TestIdentities(t *testing.T) {
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	ip, sp, _ := mailServer(t)
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	c.PostForm("/settings/mailboxes?/connect", url.Values{
+		"email": {"ada@example.test"}, "name": {"Ada Lovelace"}, "password": {"secret"}, "protocol": {"imap"},
+		"host": {"127.0.0.1"}, "port": {strconv.Itoa(ip)}, "security": {"plain"},
+		"smtpHost": {"127.0.0.1"}, "smtpPort": {strconv.Itoa(sp)}, "smtpSecurity": {"plain"},
+	})
+	var accounts []app.AccountView
+	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+	if len(accounts) != 1 || len(accounts[0].Identities) != 1 || !accounts[0].Identities[0].Default || accounts[0].Identities[0].Name != "Ada Lovelace" {
+		t.Fatalf("default identity: %+v", accounts)
+	}
+	acc := accounts[0].ID
+	page := fmt.Sprintf("/settings/mailboxes/%d", acc)
+	if p := c.Get(page); p.Status != 200 || !strings.Contains(p.Body, "ada@example.test") {
+		t.Fatalf("mailbox page: %d", p.Status)
+	}
+	// The default keeps the mailbox's address whatever is posted.
+	c.PostForm(page+"?/identity", url.Values{"id": {strconv.FormatInt(accounts[0].Identities[0].ID, 10)}, "name": {"Ada L."}, "email": {"other@example.test"}})
+	if p := c.PostForm(page+"?/identity", url.Values{"name": {"Ada at work"}, "email": {"Ada.Work@Example.test"},
+		"replyTo": {"team@example.test"}, "signature": {`<p><b>Ada</b> – Analytical Engines</p><script>x()</script>`}}); p.Status != 200 {
+		t.Fatalf("add identity: %d %s", p.Status, p.Body)
+	}
+	if p := c.PostForm(page+"?/identity", url.Values{"email": {"not an address"}}); p.Status != 400 {
+		t.Errorf("a bad address: %d", p.Status)
+	}
+	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+	ids := accounts[0].Identities
+	if len(ids) != 2 || ids[0].Email != "ada@example.test" || ids[0].Name != "Ada L." || ids[1].Email != "ada.work@example.test" {
+		t.Fatalf("identities: %+v", ids)
+	}
+	if strings.Contains(ids[1].Signature, "script") || !strings.Contains(ids[1].Signature, "<b>Ada</b>") {
+		t.Errorf("signature not cleaned: %q", ids[1].Signature)
+	}
+
+	send := map[string]any{"accountId": acc, "identityId": ids[1].ID, "to": "ada@example.test", "subject": "From work", "html": "<p>Hi</p>" + ids[1].Signature, "text": "Hi"}
+	if s := api(t, c, "POST", "/api/mail/send", send, nil); s != 200 {
+		t.Fatalf("send: %d", s)
+	}
+	var in list
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox&q=From+work", nil, &in)
+	if len(in.Messages) != 1 {
+		t.Fatalf("inbox: %+v", in)
+	}
+	var msg app.MessageView
+	api(t, c, "GET", "/api/mail/message?id="+url.QueryEscape(in.Messages[0].ID), nil, &msg)
+	if msg.From[0].Email != "ada.work@example.test" || msg.From[0].Name != "Ada at work" || len(msg.ReplyTo) != 1 || msg.ReplyTo[0].Email != "team@example.test" {
+		t.Errorf("headers: from %+v, reply-to %+v", msg.From, msg.ReplyTo)
+	}
+	// Removing: not the default, but an alias.
+	if p := c.PostForm(page+"?/remove", url.Values{"id": {strconv.FormatInt(ids[0].ID, 10)}}); p.Status != 400 {
+		t.Errorf("removed the default: %d", p.Status)
+	}
+	if p := c.PostForm(page+"?/remove", url.Values{"id": {strconv.FormatInt(ids[1].ID, 10)}}); p.Status != 200 {
+		t.Errorf("remove: %d", p.Status)
 	}
 }

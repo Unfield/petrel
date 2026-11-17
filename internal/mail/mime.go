@@ -163,6 +163,9 @@ func build(m Outgoing, hostname string) ([]byte, string, error) {
 	h.SetDate(time.Now())
 	h.SetSubject(m.Subject)
 	h.SetAddressList("From", toMail([]Address{m.From}))
+	if len(m.ReplyTo) > 0 {
+		h.SetAddressList("Reply-To", toMail(m.ReplyTo))
+	}
 	if len(m.To) > 0 {
 		h.SetAddressList("To", toMail(m.To))
 	}

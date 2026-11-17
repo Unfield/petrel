@@ -86,3 +86,9 @@ func textToHTML(s string) string {
 	}
 	return `<div class="petrel-plain">` + b.String() + `</div>`
 }
+
+// CleanFragment sanitizes HTML a user wrote for Petrel to send, such as a
+// signature: formatting, links and images, nothing that runs.
+func CleanFragment(html string) string {
+	return bluemonday.UGCPolicy().Sanitize(html)
+}

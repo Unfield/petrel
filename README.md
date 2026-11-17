@@ -136,6 +136,7 @@ docs/                design notes
   - rich text, attachments (picker, drag and drop, paste), address suggestions
   - reply, reply all, forward (forward keeps the attachments)
   - drafts that save to the server as you type
+  - several names and addresses per mailbox (aliases), each with its own signature and Reply-To
   - undo send
 - **Organizing:**
   - archive, delete and spam with undo; move to any folder

@@ -650,6 +650,9 @@ func (p *jmapProvider) email(ctx context.Context, m Outgoing, drafts string) (ma
 	if m.InReplyTo != "" {
 		email["inReplyTo"] = []string{strings.Trim(m.InReplyTo, "<>")}
 	}
+	if len(m.ReplyTo) > 0 {
+		email["replyTo"] = jm(m.ReplyTo)
+	}
 	if len(m.References) > 0 {
 		email["references"] = m.References
 	}

@@ -48,6 +48,8 @@ type AccountView struct {
 	Error     string        `json:"error,omitempty"`
 	// Quota is how full the mailbox is, if its server says.
 	Quota *mail.Quota `json:"quota,omitempty"`
+	// Identities are the names and addresses it sends as, default first.
+	Identities []Identity `json:"identities"`
 }
 
 // SummaryView is a message in the list.
@@ -147,10 +149,19 @@ func (m *MailAccounts) Accounts(ctx context.Context, userID int64) ([]AccountVie
 	if err != nil {
 		return nil, err
 	}
+	ids, err := m.Identities(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	out := make([]AccountView, len(list))
 	var wg sync.WaitGroup
 	for i, a := range list {
-		out[i] = AccountView{MailAccount: a, Mailboxes: []MailboxView{}}
+		out[i] = AccountView{MailAccount: a, Mailboxes: []MailboxView{}, Identities: []Identity{}}
+		for _, id := range ids {
+			if id.AccountID == a.ID {
+				out[i].Identities = append(out[i].Identities, id)
+			}
+		}
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

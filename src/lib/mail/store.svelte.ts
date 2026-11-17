@@ -1,7 +1,7 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import { t, type MessageKey } from '@ternkit/tern';
-import type { Account, Compose, Item, Message, Prefs, Summary, Toast } from './types';
-import { display, escapeHTML, quoteHeader } from './util';
+import type { Account, Compose, Identity, Item, Message, Prefs, Summary, Toast } from './types';
+import { display, escapeHTML, quoteHeader, signatureBlock } from './util';
 
 export const DEFAULT_PREFS: Prefs = {
 	mode: 'system',
@@ -425,10 +425,27 @@ export class MailStore {
 	}
 
 	compose(c: Partial<Compose> = {}) {
+		const accountId = c.accountId ?? this.defaultAccount();
+		const id = this.identity(accountId, c.identityId);
+		let html = c.html ?? '';
+		// A new message, reply or forward starts with the sender's signature,
+		// above any quoted text; a reopened draft has it already.
+		if (!c.draftId && id?.signature) html = '<br>' + signatureBlock(id.signature) + html;
 		this.composes = [
 			...this.composes.map((x) => ({ ...x, min: true, max: false })),
-			{ key: ++this.#seq, accountId: this.defaultAccount(), to: '', cc: '', bcc: '', subject: '', html: '', attachments: [], min: false, max: false, showCc: false, ...c }
+			{ key: ++this.#seq, to: '', cc: '', bcc: '', subject: '', attachments: [], min: false, max: false, showCc: false, ...c, accountId, identityId: id?.id, html }
 		];
+	}
+
+	/** The identity to send as: the one asked for, else the mailbox's default. */
+	identity(accountId: number, id?: number): Identity | undefined {
+		const ids = this.accountById(accountId)?.identities ?? [];
+		return ids.find((i) => i.id === id) ?? ids.find((i) => i.default) ?? ids[0];
+	}
+
+	/** Every identity of every mailbox, for the From menu. */
+	get identities(): Identity[] {
+		return this.accounts.flatMap((a) => a.identities ?? []);
 	}
 
 	isMe = (email?: string) => this.accounts.some((a) => a.email === email?.toLowerCase());
@@ -476,7 +493,7 @@ export class MailStore {
 
 	#payload(c: Compose, html: string, text: string) {
 		return {
-			accountId: c.accountId, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '', draftId: c.draftId ?? '',
+			accountId: c.accountId, identityId: c.identityId ?? 0, to: c.to, cc: c.cc, bcc: c.bcc, subject: c.subject, html, text, replyTo: c.replyTo ?? '', draftId: c.draftId ?? '',
 			attachments: c.attachments.filter((a) => a.upload || a.message).map((a) => ({ upload: a.upload, message: a.message, part: a.part }))
 		};
 	}
@@ -508,6 +525,7 @@ export class MailStore {
 		this.compose({
 			accountId: m.accountId, to: list(full.to), cc: list(full.cc), bcc: list(full.bcc), showCc: full.cc.length + full.bcc.length > 0,
 			subject: full.subject, html: full.body.plain ? full.body.html.replace(/^<div class="petrel-plain">|<\/div>$/g, '') : full.body.html, draftId: m.id,
+			identityId: this.accountById(m.accountId)?.identities?.find((i) => i.email === full.from[0]?.email.toLowerCase())?.id,
 			attachments: full.attachments.map((a) => ({ key: ++this.#seq, name: a.name, size: a.size, type: a.type, message: m.id, part: a.id }))
 		});
 	}

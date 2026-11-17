@@ -278,7 +278,11 @@
 		"noRecipient": "Add at least one recipient.",
 		"oauthState": "The sign-in took too long or came from elsewhere. Try again.",
 		"oauthDenied": "Access wasn’t granted ({error}).",
-		"duplicate": "This mailbox is already connected."
+		"duplicate": "This mailbox is already connected.",
+		"identityEmail": "Enter the email address to send as.",
+		"identityDefault": "A mailbox’s own address can’t be removed.",
+		"identityAccount": "That sender belongs to another mailbox.",
+		"signatureLong": "The signature is too long."
 	},
 	"acc": {
 		"settings": {
@@ -408,6 +412,24 @@
 			"notFound": "This page doesn’t exist",
 			"failed": "Something went wrong",
 			"home": "Back to the home page"
+		},
+		"box": {
+			"lead": "How mail from {email} looks: the names and addresses it sends as, and their signatures.",
+			"name": "Name",
+			"namePlaceholder": "Shown to the people you write to",
+			"email": "Email address",
+			"defaultEmail": "The mailbox’s own address.",
+			"aliasHint": "An alias of this mailbox. Its server decides whether it may send as this address.",
+			"replyTo": "Replies go to",
+			"optional": "(optional)",
+			"signature": "Signature",
+			"default": "Default",
+			"remove": "Remove",
+			"add": "Add an address to send as",
+			"cancel": "Cancel",
+			"format": "Formatting",
+			"plain": "Remove formatting",
+			"settings": "Settings"
 		}
 	}
 }

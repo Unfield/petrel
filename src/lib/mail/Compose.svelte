@@ -4,7 +4,7 @@
 	import Icon from './Icon.svelte';
 	import type { MailStore } from './store.svelte';
 	import type { Compose, OutFile } from './types';
-	import { fmtSize, isMac } from './util';
+	import { fmtSize, isMac, signatureBlock } from './util';
 
 	let { store, c }: { store: MailStore; c: Compose } = $props();
 
@@ -72,6 +72,26 @@
 		if (c.attachments.some((a) => a.progress !== undefined)) return store.notify(t('m.c.uploading'));
 		clearTimeout(saveTimer);
 		store.send({ ...c, attachments: c.attachments.filter((a) => !a.error) }, html(), text());
+	}
+
+	// Switching the sender switches the signature too, and a different
+	// mailbox means a new draft there.
+	function from(identityId: number) {
+		const next = store.identities.find((i) => i.id === identityId);
+		if (!next) return;
+		const old = body?.querySelector('[data-signature]');
+		if (old && next.signature) old.innerHTML = next.signature;
+		else if (old) old.remove();
+		else if (next.signature && body) {
+			// Above the quoted message of a reply, else at the end.
+			const tmp = document.createElement('div');
+			tmp.innerHTML = signatureBlock(next.signature);
+			const before = body.querySelector(':scope > blockquote');
+			body.insertBefore(document.createElement('br'), before);
+			body.insertBefore(tmp.firstChild!, before);
+		}
+		update({ identityId, accountId: next.accountId, ...(next.accountId !== c.accountId ? { draftId: undefined } : {}), html: html() });
+		changed();
 	}
 
 	function fmt(cmd: string) {
@@ -279,8 +299,12 @@
 	</header>
 	<div class="c-field">
 		<label for="from{c.key}">{t('m.c.from')}</label>
-		<select id="from{c.key}" class="from" value={c.accountId} onchange={(e) => (update({ accountId: +e.currentTarget.value, draftId: undefined }), changed())}>
-			{#each store.accounts as a (a.id)}<option value={a.id}>{a.displayName ? `${a.displayName} <${a.email}>` : a.email}</option>{/each}
+		<select id="from{c.key}" class="from" value={c.identityId ?? 0} onchange={(e) => from(+e.currentTarget.value)}>
+			{#each store.accounts as a (a.id)}
+				{#if a.identities?.length}
+					{#each a.identities as i (i.id)}<option value={i.id}>{i.name ? `${i.name} <${i.email}>` : i.email}</option>{/each}
+				{/if}
+			{/each}
 		</select>
 	</div>
 	{@render address('to', t('m.c.to'))}

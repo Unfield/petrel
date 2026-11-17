@@ -13,7 +13,11 @@ export type Account = {
 	mailboxes: Mailbox[];
 	error?: string;
 	quota?: { used: number; limit: number };
+	identities?: Identity[];
 };
+
+/** A name and address a mailbox sends as, with its signature (HTML). */
+export type Identity = { id: number; accountId: number; name: string; email: string; replyTo: string; signature: string; default: boolean };
 
 export type Summary = {
 	id: string;
@@ -77,6 +81,7 @@ export type Compose = {
 	html: string;
 	replyTo?: string;
 	draftId?: string;
+	identityId?: number;
 	attachments: OutFile[];
 	min: boolean;
 	max: boolean;

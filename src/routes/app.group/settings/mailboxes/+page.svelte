@@ -80,7 +80,7 @@
 				{#each data.accounts as a (a.id)}
 					<li>
 						<span class="dot" style:background={a.color}></span>
-						<span class="who"><b>{a.displayName || a.email}</b>{#if a.displayName}<span>{a.email}</span>{/if}</span>
+						<a class="who" href="/settings/mailboxes/{a.id}"><b>{a.displayName || a.email}</b>{#if a.displayName}<span>{a.email}</span>{/if}</a>
 						<Badge>{a.protocol.toUpperCase()}</Badge>
 						{#if !data.direct}
 							<form method="POST" action="?/remove" use:enhance>
@@ -195,7 +195,8 @@
 	.accounts li { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--tern-border); }
 	.accounts li:last-child { border-bottom: 0; }
 	.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-	.who { flex: 1; display: grid; min-width: 0; }
+	.who { flex: 1; display: grid; min-width: 0; color: inherit; text-decoration: none; }
+	a.who:hover b { text-decoration: underline; }
 	.who span { color: var(--tern-muted); font-size: 0.875rem; }
 	.muted { color: var(--tern-muted); margin: 0; }
 	.grid { display: grid; gap: 0.875rem; max-width: 34rem; }

@@ -278,7 +278,11 @@
 		"noRecipient": "Füge mindestens einen Empfänger hinzu.",
 		"oauthState": "Die Anmeldung hat zu lange gedauert oder kam von woanders. Versuch es noch einmal.",
 		"oauthDenied": "Der Zugriff wurde nicht erlaubt ({error}).",
-		"duplicate": "Dieses Postfach ist schon verbunden."
+		"duplicate": "Dieses Postfach ist schon verbunden.",
+		"identityEmail": "Gib die Adresse ein, mit der du senden willst.",
+		"identityDefault": "Die eigene Adresse eines Postfachs kann nicht entfernt werden.",
+		"identityAccount": "Dieser Absender gehört zu einem anderen Postfach.",
+		"signatureLong": "Die Signatur ist zu lang."
 	},
 	"acc": {
 		"settings": {
@@ -408,6 +412,24 @@
 			"notFound": "Diese Seite gibt es nicht",
 			"failed": "Etwas ist schiefgelaufen",
 			"home": "Zur Startseite"
+		},
+		"box": {
+			"lead": "Wie Mails von {email} aussehen: die Namen und Adressen, mit denen es sendet, und ihre Signaturen.",
+			"name": "Name",
+			"namePlaceholder": "Für die Leute, denen du schreibst",
+			"email": "E-Mail-Adresse",
+			"defaultEmail": "Die eigene Adresse des Postfachs.",
+			"aliasHint": "Ein Alias dieses Postfachs. Sein Server entscheidet, ob es mit dieser Adresse senden darf.",
+			"replyTo": "Antworten gehen an",
+			"optional": "(optional)",
+			"signature": "Signatur",
+			"default": "Standard",
+			"remove": "Entfernen",
+			"add": "Absenderadresse hinzufügen",
+			"cancel": "Abbrechen",
+			"format": "Formatierung",
+			"plain": "Formatierung entfernen",
+			"settings": "Einstellungen"
 		}
 	},
 	"tern": {

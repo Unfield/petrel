@@ -78,3 +78,7 @@ export function quoteHeader(date: string, name: string) {
 }
 
 export const escapeHTML = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+/** A signature in a message being written, marked so switching the sender
+ * can swap it. The HTML was sanitized by the server. */
+export const signatureBlock = (html: string) => `<div data-signature>${html}</div>`;

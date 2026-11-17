@@ -158,13 +158,14 @@ type Page struct {
 
 // Outgoing is a message to send.
 type Outgoing struct {
-	From       Address
-	To         []Address
-	Cc         []Address
-	Bcc        []Address
-	Subject    string
-	Text       string
-	HTML       string
+	From        Address
+	ReplyTo     []Address
+	To          []Address
+	Cc          []Address
+	Bcc         []Address
+	Subject     string
+	Text        string
+	HTML        string
 	InReplyTo   string
 	References  []string
 	Attachments []File

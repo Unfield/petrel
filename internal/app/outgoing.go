@@ -23,6 +23,7 @@ type Draft struct {
 	ReplyTo     string    `json:"replyTo"`     // the global ID of the message this answers
 	Attachments []FileRef `json:"attachments"` // uploads, or parts of messages
 	DraftID     string    `json:"draftId"`     // the saved draft this replaces
+	IdentityID  int64     `json:"identityId"`  // who it's from: 0 for the mailbox's default
 }
 
 func parseList(ctx context.Context, s, field string) ([]mail.Address, error) {
@@ -49,6 +50,12 @@ func (m *MailAccounts) Outgoing(ctx *kit.Ctx, userID int64, d Draft, strict bool
 		return nil, mail.Outgoing{}, MailError(ctx, err)
 	}
 	out := mail.Outgoing{From: mail.Address{Name: acc.DisplayName, Email: acc.Email}, Subject: d.Subject, HTML: d.HTML, Text: d.Text}
+	if id, err := m.fromIdentity(ctx, userID, d); err != nil {
+		return nil, out, err
+	} else if id != nil {
+		out.From = mail.Address{Name: id.Name, Email: id.Email}
+		out.ReplyTo, _ = parseList(ctx, id.ReplyTo, "Reply-To")
+	}
 	for _, f := range []struct {
 		raw, name string
 		into      *[]mail.Address
@@ -69,4 +76,29 @@ func (m *MailAccounts) Outgoing(ctx *kit.Ctx, userID int64, d Draft, strict bool
 		return nil, out, MailError(ctx, err)
 	}
 	return p, out, nil
+}
+
+// fromIdentity is the identity a draft is from: the one chosen, which must
+// be of the draft's mailbox, or the mailbox's default.
+func (m *MailAccounts) fromIdentity(ctx context.Context, userID int64, d Draft) (*Identity, error) {
+	if d.IdentityID != 0 {
+		id, err := m.Identity(ctx, userID, d.IdentityID)
+		if err != nil {
+			return nil, err
+		}
+		if id.AccountID != d.AccountID {
+			return nil, kit.Error(http.StatusBadRequest, tr(ctx, "e.identityAccount"))
+		}
+		return id, nil
+	}
+	ids, err := m.Identities(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ids {
+		if id.AccountID == d.AccountID && id.Default {
+			return &id, nil
+		}
+	}
+	return nil, nil
 }
