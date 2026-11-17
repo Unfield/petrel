@@ -252,6 +252,17 @@ func TestDirectSignIn(t *testing.T) {
 	if page := c.PostForm("/login?/mailbox", url.Values{"email": {"ada@example.test"}, "password": {"wrong"}}); page.Status != 400 {
 		t.Errorf("a wrong password: %d", page.Status)
 	}
+	// In German, from the browser's language.
+	req, _ := http.NewRequest("POST", c.URL("/login?/mailbox"), strings.NewReader(url.Values{"email": {"ada@example.test"}, "password": {"wrong"}}.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Origin", c.URL(""))
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9")
+	if page := c.Do(req); page.Status != 400 || !strings.Contains(page.Body, "Passwort stimmen nicht") {
+		t.Errorf("a wrong password in German: %d %s", page.Status, page.Body)
+	}
+	if page := c.Get("/login"); !strings.Contains(page.Body, "Sign in to your mail") {
+		t.Errorf("the login page in English: %s", page.Body)
+	}
 	if page := c.PostForm("/login?/mailbox", url.Values{"email": {"bob@elsewhere.test"}, "password": {"x"}}); page.Status != 400 {
 		t.Errorf("another domain: %d", page.Status)
 	}
@@ -265,6 +276,22 @@ func TestDirectSignIn(t *testing.T) {
 	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
 	if len(accounts) != 1 || accounts[0].Email != "ada@example.test" || accounts[0].Error != "" {
 		t.Fatalf("accounts: %+v", accounts)
+	}
+	// No team was made at sign-in; settings make one rather than asking.
+	for range 2 {
+		if page := c.Get("/settings"); page.Status != 200 {
+			t.Fatalf("settings without a team: %d %s", page.Status, page.Location())
+		}
+	}
+	for path, want := range map[string]string{"/settings": "Konto löschen", "/settings/security": "Zwei-Schritt-Anmeldung", "/settings/mailboxes": "Postfächer"} {
+		req, _ := http.NewRequest("GET", c.URL(path), nil)
+		req.Header.Set("Accept-Language", "de")
+		if page := c.Do(req); page.Status != 200 || !strings.Contains(page.Body, want) {
+			t.Errorf("%s in German: %d, no %q", path, page.Status, want)
+		}
+	}
+	if page := c.Get("/settings/team");page.Status != 200 || !strings.Contains(string(page.Body), "’s team") {
+		t.Errorf("team page: %d %s", page.Status, page.Location())
 	}
 	c.PostForm("/logout", url.Values{})
 	if n, _ := app.Current.Mail.List(t.Context(), 1); len(n) != 0 {

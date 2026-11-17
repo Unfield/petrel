@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '@ternkit/tern';
 	import { Alert, AlertDialog, Badge, Button, Card, Field, Form, Input, PasswordInput } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 	import { forms } from './$forms';
@@ -14,58 +15,58 @@
 	let deleteForm = $state<HTMLFormElement>();
 </script>
 
-<svelte:head><title>Settings · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.settings.title')} · Petrel</title></svelte:head>
 
-<h1>Settings</h1>
-<p class="lead">Your profile, email address and password.</p>
+<h1>{t('acc.settings.title')}</h1>
+<p class="lead">{t('acc.settings.lead')}</p>
 
 <div class="sections">
-	<Card title="Profile" level={2}>
+	<Card title={t('acc.settings.profile')} level={2}>
 		<Form action="?/name" rules={forms.name} {form} reset={false}>
-			<Field label="Name" name="name"><Input value={data.user.name} autocomplete="name" /></Field>
-			<div><Button type="submit" size="sm">Save</Button></div>
+			<Field label={t('acc.settings.name')} name="name"><Input value={data.user.name} autocomplete="name" /></Field>
+			<div><Button type="submit" size="sm">{t('acc.settings.save')}</Button></div>
 		</Form>
-		{#if done === 'name'}<Alert tone="success" live>Saved.</Alert>{/if}
+		{#if done === 'name'}<Alert tone="success" live>{t('acc.settings.saved')}</Alert>{/if}
 	</Card>
 
-	<Card title="Email address" level={2}>
+	<Card title={t('acc.settings.email')} level={2}>
 		<p class="email">
 			{data.user.email}
-			{#if data.user.emailVerified}<Badge tone="success">Confirmed</Badge>{:else}<Badge tone="warning">Not confirmed</Badge>{/if}
+			{#if data.user.emailVerified}<Badge tone="success">{t('acc.settings.confirmed')}</Badge>{:else}<Badge tone="warning">{t('acc.settings.notConfirmed')}</Badge>{/if}
 		</p>
 		{#if !data.user.emailVerified}
 			<Form action="?/verify" reset={false}>
-				<div><Button type="submit" variant="secondary" size="sm">Send the confirmation link again</Button></div>
+				<div><Button type="submit" variant="secondary" size="sm">{t('acc.settings.resend')}</Button></div>
 			</Form>
-			{#if done === 'verify'}<Alert tone="success" live>Sent: check your inbox.</Alert>{/if}
+			{#if done === 'verify'}<Alert tone="success" live>{t('acc.settings.resent')}</Alert>{/if}
 		{/if}
 		<Form action="?/email" rules={forms.email} {form}>
-			<Field label="New email address" name="email" description="We’ll send a link to it; your address changes once you open it.">
+			<Field label={t('acc.settings.newEmail')} name="email" description={t('acc.settings.newEmailHelp')}>
 				<Input type="email" autocomplete="email" spellcheck="false" />
 			</Field>
-			<div><Button type="submit" size="sm">Change email address</Button></div>
+			<div><Button type="submit" size="sm">{t('acc.settings.changeEmail')}</Button></div>
 		</Form>
-		{#if done === 'email'}<Alert tone="success" live>Check the new address for a link to confirm it.</Alert>{/if}
+		{#if done === 'email'}<Alert tone="success" live>{t('acc.settings.changeSent')}</Alert>{/if}
 	</Card>
 
-	<Card title="Password" level={2}>
+	<Card title={t('acc.settings.password')} level={2}>
 		<Form action="?/password" rules={forms.password} {form}>
 			{#if data.user.hasPassword}
-				<Field label="Current password" name="current"><PasswordInput autocomplete="current-password" /></Field>
+				<Field label={t('acc.settings.current')} name="current"><PasswordInput autocomplete="current-password" /></Field>
 			{/if}
-			<Field label="New password" name="password" description="At least 10 characters. Your other devices are signed out.">
+			<Field label={t('acc.settings.newPassword')} name="password" description={t('acc.settings.newPasswordHelp')}>
 				<PasswordInput autocomplete="new-password" />
 			</Field>
-			<div><Button type="submit" size="sm">{data.user.hasPassword ? 'Change password' : 'Set a password'}</Button></div>
+			<div><Button type="submit" size="sm">{data.user.hasPassword ? t('acc.settings.changePassword') : t('acc.settings.setPassword')}</Button></div>
 		</Form>
-		{#if done === 'password'}<Alert tone="success" live>Password changed.</Alert>{/if}
+		{#if done === 'password'}<Alert tone="success" live>{t('acc.settings.passwordChanged')}</Alert>{/if}
 	</Card>
 
-	<Card title="Delete your account" level={2}>
-		<p>Your account, passkeys and sessions are deleted for good, with the teams only you are in. A team you own with others in it needs another owner first.</p>
-		<form method="POST" action="?/delete" bind:this={deleteForm}>
+	<Card title={t('acc.settings.deleteTitle')} level={2}>
+		<p>{t('acc.settings.deleteBody')}</p>
+		<form class="delete" method="POST" action="?/delete" bind:this={deleteForm}>
 			<input type="hidden" name="form" value="delete" />
-			<Button type="button" variant="danger" size="sm" onclick={() => (deleteOpen = true)}>Delete account</Button>
+			<Button type="button" variant="danger" size="sm" onclick={() => (deleteOpen = true)}>{t('acc.settings.deleteButton')}</Button>
 		</form>
 		{#if deleteError}<Alert tone="danger" live>{deleteError}</Alert>{/if}
 	</Card>
@@ -73,9 +74,9 @@
 
 <AlertDialog
 	bind:open={deleteOpen}
-	title="Delete your account?"
-	description="This can’t be undone."
-	confirmLabel="Delete account"
+	title={t('acc.settings.deleteConfirm')}
+	description={t('acc.settings.deleteUndone')}
+	confirmLabel={t('acc.settings.deleteButton')}
 	danger
 	onconfirm={() => deleteForm?.requestSubmit()}
 />
@@ -97,5 +98,8 @@
 	}
 	p {
 		margin: 0;
+	}
+	.delete {
+		margin-top: 0.75rem;
 	}
 </style>

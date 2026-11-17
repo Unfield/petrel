@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '@ternkit/tern';
+	import { enhance, t } from '@ternkit/tern';
 	import { Alert, Button, SignIn } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 	import { forms } from './$forms';
@@ -9,7 +9,7 @@
 	let busy = $state(false);
 </script>
 
-<svelte:head><title>Sign in · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.login.title')} · Petrel</title></svelte:head>
 
 {#if data.direct}
 	<!-- Direct mode: the mailbox's own address and password. -->
@@ -25,14 +25,14 @@
 			};
 		}}
 	>
-		<h1>Sign in to your mail</h1>
-		<p>Use your email address and its password.</p>
+		<h1>{t('acc.login.directTitle')}</h1>
+		<p>{t('acc.login.directBody')}</p>
 		{#if f?.message}<Alert tone="danger" live>{f.message}</Alert>{/if}
 		<input type="hidden" name="next" value={data.next} />
-		<label>Email address<input name="email" type="email" autocomplete="email" required spellcheck="false" /></label>
+		<label>{t('acc.login.email')}<input name="email" type="email" autocomplete="email" required spellcheck="false" /></label>
 		{#if f?.errors?.email}<span class="err">{f.errors.email}</span>{/if}
-		<label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
-		<Button type="submit" disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</Button>
+		<label>{t('acc.login.password')}<input name="password" type="password" autocomplete="current-password" required /></label>
+		<Button type="submit" disabled={busy}>{busy ? t('acc.login.busy') : t('acc.login.submit')}</Button>
 	</form>
 {:else}
 	<SignIn

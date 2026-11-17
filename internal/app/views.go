@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -78,18 +77,18 @@ type MessageView struct {
 func UserID(ctx *kit.Ctx) int64 { return accounts.Current(ctx).ID }
 
 // MailError turns mail errors into answers the user can act on.
-func MailError(err error) error {
+func MailError(ctx context.Context, err error) error {
 	switch {
 	case err == nil:
 		return nil
 	case errors.Is(err, ErrNoAccount), errors.Is(err, mail.ErrNotFound):
 		return kit.NotFound()
 	case errors.Is(err, mail.ErrAuth):
-		return kit.Error(http.StatusBadGateway, "The mail server refused the username or password. Check them in Settings → Mailboxes.")
+		return kit.Error(http.StatusBadGateway, tr(ctx, "e.auth"))
 	case errors.Is(err, mail.ErrUnsupported):
-		return kit.Error(http.StatusBadRequest, "This account’s protocol can’t do that (POP3 has a single inbox).")
+		return kit.Error(http.StatusBadRequest, tr(ctx, "e.unsupported"))
 	case errors.Is(err, mail.ErrBlocked):
-		return kit.Error(http.StatusBadRequest, "That server’s address isn’t allowed.")
+		return kit.Error(http.StatusBadRequest, tr(ctx, "e.blocked"))
 	case errors.Is(err, context.Canceled):
 		return err
 	}
@@ -97,7 +96,7 @@ func MailError(err error) error {
 	if errors.As(err, &ke) {
 		return err
 	}
-	return kit.Error(http.StatusBadGateway, "The mail server: "+err.Error())
+	return kit.Error(http.StatusBadGateway, tr(ctx, "e.server", map[string]any{"error": err.Error()}))
 }
 
 // boxCache keeps each account's folders for a short while: queries need
@@ -157,9 +156,9 @@ func (m *MailAccounts) Accounts(ctx context.Context, userID int64) ([]AccountVie
 			defer cancel()
 			boxes, err := m.Boxes(cctx, userID, a.ID, true)
 			if err != nil {
-				out[i].Error = MailError(err).Error()
+				out[i].Error = MailError(ctx, err).Error()
 				var ke *kit.HTTPError
-				if errors.As(MailError(err), &ke) {
+				if errors.As(MailError(ctx, err), &ke) {
 					out[i].Error = ke.Message
 				}
 				return
@@ -184,7 +183,7 @@ func (m *MailAccounts) RoleBox(ctx context.Context, userID, id int64, role strin
 			return b.ID, nil
 		}
 	}
-	return "", kit.Error(http.StatusBadRequest, fmt.Sprintf("This account has no %s folder.", role))
+	return "", kit.Error(http.StatusBadRequest, tr(ctx, "e.noFolder", map[string]any{"folder": tr(ctx, "m."+role)}))
 }
 
 func roleOfBox(boxes []mail.Mailbox, id string) string {
@@ -266,7 +265,7 @@ func (m *MailAccounts) Query(ctx context.Context, userID int64, in ListQuery) (L
 				mu.Lock()
 				defer mu.Unlock()
 				var ke *kit.HTTPError
-				if errors.As(MailError(err), &ke) {
+				if errors.As(MailError(ctx, err), &ke) {
 					res.Errors = append(res.Errors, ke.Message)
 				}
 			}

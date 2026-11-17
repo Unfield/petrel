@@ -247,5 +247,160 @@
 		},
 		"snoozed": "Snoozed",
 		"labels": "Labels"
+	},
+	"e": {
+		"auth": "The mail server refused the username or password. Check them in Settings → Mailboxes.",
+		"unsupported": "This account’s protocol can’t do that (POP3 has a single inbox).",
+		"blocked": "That server’s address isn’t allowed.",
+		"server": "The mail server: {error}",
+		"noFolder": "This account has no {folder} folder.",
+		"addresses": "Check the addresses in “{field}”.",
+		"uploadExpired": "An attachment expired: attach it again.",
+		"tooLarge": "Attachments can be 25 MB at most.",
+		"tooLargeTotal": "Attachments can be 25 MB together at most.",
+		"domain": "This Petrel doesn’t serve that address’s domain.",
+		"credentials": "That email address or password isn’t right.",
+		"unreachable": "Couldn’t reach the mail server. Try again in a moment.",
+		"jmapUrl": "Enter the JMAP session URL, starting with https://.",
+		"host": "Enter the incoming server and its port.",
+		"smtpHost": "Enter the SMTP server and its port, to send mail.",
+		"connect": "Couldn’t connect: {error}",
+		"notConnected": "That mailbox isn’t connected.",
+		"useMailbox": "Sign in with your email account.",
+		"prefs": "Settings are too large or not JSON.",
+		"labelName": "Name the label.",
+		"future": "Pick a time in the future.",
+		"crossAccount": "Messages can only move within their account.",
+		"noRecipient": "Add at least one recipient.",
+		"oauthState": "The sign-in took too long or came from elsewhere. Try again.",
+		"oauthDenied": "Access wasn’t granted ({error})."
+	},
+	"acc": {
+		"settings": {
+			"title": "Settings",
+			"lead": "Your profile, email address and password.",
+			"profile": "Profile",
+			"name": "Name",
+			"save": "Save",
+			"saved": "Saved.",
+			"email": "Email address",
+			"confirmed": "Confirmed",
+			"notConfirmed": "Not confirmed",
+			"resend": "Send the confirmation link again",
+			"resent": "Sent: check your inbox.",
+			"newEmail": "New email address",
+			"newEmailHelp": "We’ll send a link to it; your address changes once you open it.",
+			"changeEmail": "Change email address",
+			"changeSent": "Check the new address for a link to confirm it.",
+			"password": "Password",
+			"current": "Current password",
+			"newPassword": "New password",
+			"newPasswordHelp": "At least 10 characters. Your other devices are signed out.",
+			"changePassword": "Change password",
+			"setPassword": "Set a password",
+			"passwordChanged": "Password changed.",
+			"deleteTitle": "Delete your account",
+			"deleteBody": "Your account, passkeys and sessions are deleted for good, with the teams only you are in. A team you own with others in it needs another owner first.",
+			"deleteButton": "Delete account",
+			"deleteConfirm": "Delete your account?",
+			"deleteUndone": "This can’t be undone."
+		},
+		"security": {
+			"title": "Security",
+			"lead": "How you sign in, and where you’re signed in."
+		},
+		"team": {
+			"title": "Team",
+			"lead": "Who’s in the team, and what each of them can do.",
+			"activity": "Team activity",
+			"activityBody": "Who joined, left and changed what in the team."
+		},
+		"mb": {
+			"title": "Mailboxes",
+			"lead": "The email accounts Petrel reads and sends from. Passwords are stored encrypted.",
+			"connected": "Connected",
+			"connectedTo": "Connected {email}.",
+			"open": "Open your mail",
+			"removed": "Disconnected. Its mail stays on the server.",
+			"disconnect": "Disconnect",
+			"none": "No mailboxes yet. Connect one below.",
+			"directNote": "This Petrel reads the mailbox you signed in with. Its password is kept, encrypted, only until you sign out.",
+			"directOnly": "This Petrel reads the mailbox you signed in with.",
+			"connectTitle": "Connect a mailbox",
+			"connectWith": "Connect {provider}",
+			"orAny": "Or any other mailbox with its address and password:",
+			"email": "Email address",
+			"continue": "Continue",
+			"finding": "Looking up settings…",
+			"useDev": "Use the dev mail server",
+			"yourName": "Your name",
+			"yourNameHint": "(shown to people you write to)",
+			"password": "Password",
+			"appPassword": "Gmail, iCloud, Outlook and Fastmail need an app password here, not your normal one.",
+			"server": "Server settings",
+			"protocol": "Protocol",
+			"recommended": "{protocol} (recommended)",
+			"username": "Username",
+			"jmapUrl": "JMAP session URL",
+			"incoming": "Incoming ({protocol})",
+			"outgoing": "Outgoing (SMTP)",
+			"host": "Server",
+			"port": "Port",
+			"security": "Security",
+			"plain": "None (local only)",
+			"connect": "Connect",
+			"connecting": "Connecting…",
+			"back": "Back",
+			"src": {
+				"jmap": "Found a JMAP server for this domain.",
+				"autoconfig": "Found the settings this provider publishes.",
+				"ispdb": "Found this provider in Thunderbird’s database.",
+				"srv": "Found the servers in this domain’s DNS records.",
+				"guess": "Couldn’t find settings automatically: these are common guesses. Check them with your provider.",
+				"dev": "Settings for the local dev mail server (go run ./cmd/devmail)."
+			}
+		},
+		"login": {
+			"title": "Sign in",
+			"directTitle": "Sign in to your mail",
+			"directBody": "Use your email address and its password.",
+			"email": "Email address",
+			"password": "Password",
+			"submit": "Sign in",
+			"busy": "Signing in…"
+		},
+		"signup": {
+			"title": "Create an account",
+			"continueWith": "Continue with {provider}"
+		},
+		"code": {
+			"title": "Enter your code"
+		},
+		"forgot": {
+			"title": "Reset your password"
+		},
+		"reset": {
+			"title": "Choose a new password"
+		},
+		"verify": {
+			"title": "Confirm your email",
+			"confirmed": "{email} is confirmed.",
+			"invalid": "This link is invalid or has expired. Send a new one from your settings.",
+			"toMail": "Go to your mail"
+		},
+		"invitation": {
+			"title": "Invitation"
+		},
+		"newTeam": {
+			"title": "Create a team"
+		},
+		"switchTeam": {
+			"title": "Switch team"
+		},
+		"error": {
+			"notFound": "This page doesn’t exist",
+			"failed": "Something went wrong",
+			"home": "Back to the home page"
+		}
 	}
 }

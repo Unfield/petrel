@@ -26,11 +26,11 @@ func GET(ctx *kit.Ctx) error {
 	}
 	p, _, err := app.Current.Mail.Provider(ctx, app.UserID(ctx), account)
 	if err != nil {
-		return app.MailError(err)
+		return app.MailError(ctx, err)
 	}
 	att, body, err := p.Attachment(ctx, id, q.Get("part"))
 	if err != nil {
-		return app.MailError(err)
+		return app.MailError(ctx, err)
 	}
 	defer body.Close()
 	w := ctx.Writer()

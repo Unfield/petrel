@@ -41,7 +41,7 @@ var Actions = kit.Actions{
 			return struct{}{}, accounts.FormError(ctx, err)
 		}
 		// Everyone starts with a team of their own, to rename or invite to.
-		if _, err := acc.CreateTeam(ctx, strings.TrimSpace(in.Name)+"’s team"); err != nil {
+		if _, err := acc.CreateTeam(ctx, app.TeamName(in.Name, in.Email)); err != nil {
 			return struct{}{}, err
 		}
 		next := app.SafeNext(ctx.URL().Query().Get("next"))

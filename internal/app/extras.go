@@ -59,7 +59,7 @@ func (m *MailAccounts) Files(ctx context.Context, userID int64, refs []FileRef) 
 		case r.Upload != "":
 			err := m.db.QueryRowContext(ctx, `SELECT name, type, data FROM uploads WHERE id = ? AND user_id = ?`, r.Upload, userID).Scan(&f.Name, &f.Type, &f.Data)
 			if errors.Is(err, sql.ErrNoRows) {
-				return nil, kit.Error(http.StatusBadRequest, "An attachment expired: attach it again.")
+				return nil, kit.Error(http.StatusBadRequest, tr(ctx, "e.uploadExpired"))
 			}
 			if err != nil {
 				return nil, err
@@ -88,7 +88,7 @@ func (m *MailAccounts) Files(ctx context.Context, userID int64, refs []FileRef) 
 		}
 		total += int64(len(f.Data))
 		if total > MaxUpload {
-			return nil, kit.Error(http.StatusRequestEntityTooLarge, "Attachments can be 25 MB together at most.")
+			return nil, kit.Error(http.StatusRequestEntityTooLarge, tr(ctx, "e.tooLargeTotal"))
 		}
 		out = append(out, f)
 	}

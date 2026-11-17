@@ -17,12 +17,12 @@ func POST(ctx *kit.Ctx) error {
 	r.Body = http.MaxBytesReader(ctx.Writer(), r.Body, app.MaxUpload+1<<20)
 	f, h, err := r.FormFile("file")
 	if err != nil {
-		return kit.Error(http.StatusBadRequest, "Attachments can be 25 MB at most.")
+		return kit.Error(http.StatusBadRequest, ctx.T("e.tooLarge"))
 	}
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, app.MaxUpload+1))
 	if err != nil || len(data) > app.MaxUpload {
-		return kit.Error(http.StatusRequestEntityTooLarge, "Attachments can be 25 MB at most.")
+		return kit.Error(http.StatusRequestEntityTooLarge, ctx.T("e.tooLarge"))
 	}
 	typ := h.Header.Get("Content-Type")
 	if typ == "" {

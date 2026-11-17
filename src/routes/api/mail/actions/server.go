@@ -68,7 +68,7 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 		var moved map[string]string
 		p, _, err := app.Current.Mail.Provider(ctx, user, account)
 		if err != nil {
-			return Out{}, app.MailError(err)
+			return Out{}, app.MailError(ctx, err)
 		}
 		switch in.Action {
 		case "read":
@@ -84,7 +84,7 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 		case "label", "unlabel":
 			k := labelKeyword(in.Label)
 			if k == "" {
-				return Out{}, kit.Error(http.StatusBadRequest, "Name the label.")
+				return Out{}, kit.Error(http.StatusBadRequest, ctx.T("e.labelName"))
 			}
 			if in.Action == "label" {
 				err = p.SetKeywords(ctx, ids, []string{k}, nil)
@@ -93,13 +93,13 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 			}
 		case "snooze":
 			if in.Until <= time.Now().UnixMilli() {
-				return Out{}, kit.Error(http.StatusBadRequest, "Pick a time in the future.")
+				return Out{}, kit.Error(http.StatusBadRequest, ctx.T("e.future"))
 			}
 			moved, err = app.Current.Mail.Snooze(ctx, user, account, ids, time.UnixMilli(in.Until))
 		case "move":
 			dest, box, ok := app.SplitID(in.Mailbox)
 			if !ok || dest != account {
-				return Out{}, kit.Error(http.StatusBadRequest, "Messages can only move within their account.")
+				return Out{}, kit.Error(http.StatusBadRequest, ctx.T("e.crossAccount"))
 			}
 			moved, err = p.Move(ctx, ids, box)
 		default: // archive, trash, junk, inbox: the account's folder with that role
@@ -119,7 +119,7 @@ func POST(ctx *kit.Ctx, in In) (Out, error) {
 			}
 		}
 		if err != nil {
-			return Out{}, app.MailError(err)
+			return Out{}, app.MailError(ctx, err)
 		}
 		if in.Action != "snooze" && in.Action != "label" && in.Action != "unlabel" {
 			app.Current.Mail.Unsnooze(ctx, user, account, ids) // moved by hand: no longer waits

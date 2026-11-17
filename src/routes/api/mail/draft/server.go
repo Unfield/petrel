@@ -33,7 +33,7 @@ func POST(ctx *kit.Ctx, in app.Draft) (Out, error) {
 		return Out{}, nil
 	}
 	if err != nil {
-		return Out{}, app.MailError(err)
+		return Out{}, app.MailError(ctx, err)
 	}
 	if id == "" {
 		return Out{}, nil

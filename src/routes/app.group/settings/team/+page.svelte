@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '@ternkit/tern';
 	import { ActivityLog, Alert, Card, TeamInvitations, TeamMembers, TeamSettings } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 
@@ -7,16 +8,16 @@
 	const manages = $derived(data.team.role === 'owner' || data.team.role === 'admin');
 </script>
 
-<svelte:head><title>Team · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.team.title')} · Petrel</title></svelte:head>
 
 <h1>{data.team.team.name}</h1>
-<p class="lead">Who’s in the team, and what each of them can do.</p>
+<p class="lead">{t('acc.team.lead')}</p>
 
 <div class="sections">
 	{#if manages}
 		<Card>
 			<TeamSettings team={data.team.team} role={data.team.role} renameAction="?/rename" deleteAction="?/delete" {form} level={2} />
-			{#if done === 'renamed'}<Alert tone="success" live>Saved.</Alert>{/if}
+			{#if done === 'renamed'}<Alert tone="success" live>{t('acc.settings.saved')}</Alert>{/if}
 		</Card>
 	{/if}
 
@@ -33,8 +34,8 @@
 			<ActivityLog
 				entries={data.activity}
 				showActor
-				title="Team activity"
-				description="Who joined, left and changed what in the team."
+				title={t('acc.team.activity')}
+				description={t('acc.team.activityBody')}
 				moreHref={data.older ? `?before=${data.older}` : undefined}
 				level={2}
 			/>

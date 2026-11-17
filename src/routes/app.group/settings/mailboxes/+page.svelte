@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance, t } from '@ternkit/tern';
+	import { enhance, t, type MessageKey } from '@ternkit/tern';
 	import { Alert, Badge, Button, Card } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 
@@ -62,27 +62,19 @@
 		step = 'details';
 	}
 
-	const sourceText: Record<string, string> = {
-		jmap: 'Found a JMAP server for this domain.',
-		autoconfig: 'Found the settings this provider publishes.',
-		ispdb: 'Found this provider in Thunderbird’s database.',
-		srv: 'Found the servers in this domain’s DNS records.',
-		guess: 'Couldn’t find settings automatically: these are common guesses. Check them with your provider.',
-		dev: 'Settings for the local dev mail server (go run ./cmd/devmail).'
-	};
 </script>
 
-<svelte:head><title>Mailboxes · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.mb.title')} · Petrel</title></svelte:head>
 
-<h1>Mailboxes</h1>
-<p class="lead">The email accounts Petrel reads and sends from. Passwords are stored encrypted.</p>
+<h1>{t('acc.mb.title')}</h1>
+<p class="lead">{t('acc.mb.lead')}</p>
 
 <div class="sections">
-	<Card title="Connected" level={2}>
-		{#if f?.done === 'connected'}<Alert tone="success" live>Connected {f.email}. <a href="/mail">Open your mail</a></Alert>{/if}
-		{#if data.connected}<Alert tone="success" live>Connected {data.connected}. <a href="/mail">Open your mail</a></Alert>{/if}
+	<Card title={t('acc.mb.connected')} level={2}>
+		{#if f?.done === 'connected'}<Alert tone="success" live>{t('acc.mb.connectedTo', { email: f.email ?? '' })} <a href="/mail">{t('acc.mb.open')}</a></Alert>{/if}
+		{#if data.connected}<Alert tone="success" live>{t('acc.mb.connectedTo', { email: data.connected })} <a href="/mail">{t('acc.mb.open')}</a></Alert>{/if}
 		{#if data.error}<Alert tone="danger" live>{data.error}</Alert>{/if}
-		{#if f?.done === 'removed'}<Alert tone="success" live>Disconnected. Its mail stays on the server.</Alert>{/if}
+		{#if f?.done === 'removed'}<Alert tone="success" live>{t('acc.mb.removed')}</Alert>{/if}
 		{#if data.accounts.length}
 			<ul class="accounts">
 				{#each data.accounts as a (a.id)}
@@ -93,33 +85,33 @@
 						{#if !data.direct}
 							<form method="POST" action="?/remove" use:enhance>
 								<input type="hidden" name="id" value={a.id} />
-								<Button type="submit" variant="ghost" size="sm">Disconnect</Button>
+								<Button type="submit" variant="ghost" size="sm">{t('acc.mb.disconnect')}</Button>
 							</form>
 						{/if}
 					</li>
 				{/each}
 			</ul>
 		{:else}
-			<p class="muted">No mailboxes yet. Connect one below.</p>
+			<p class="muted">{t('acc.mb.none')}</p>
 		{/if}
 	</Card>
 
 	{#if data.direct}
-		<p class="muted">This Petrel reads the mailbox you signed in with. Its password is kept, encrypted, only until you sign out.</p>
+		<p class="muted">{t('acc.mb.directNote')}</p>
 	{:else}
-	<Card title="Connect a mailbox" level={2}>
+	<Card title={t('acc.mb.connectTitle')} level={2}>
 		{#if data.oauth.length}
 			<div class="row oauth">
-				{#each data.oauth as p (p.name)}<Button href="/api/mail/oauth/start?provider={p.name}" variant="secondary">Connect {p.label}</Button>{/each}
+				{#each data.oauth as p (p.name)}<Button href="/api/mail/oauth/start?provider={p.name}" variant="secondary">{t('acc.mb.connectWith', { provider: p.label })}</Button>{/each}
 			</div>
-			<p class="hint">Or any other mailbox with its address and password:</p>
+			<p class="hint">{t('acc.mb.orAny')}</p>
 		{/if}
 		{#if step === 'email'}
 			<form class="grid" onsubmit={find}>
-				<label>Email address<input type="email" bind:value={email} required autocomplete="email" spellcheck="false" placeholder="you@example.com" /></label>
+				<label>{t('acc.mb.email')}<input type="email" bind:value={email} required autocomplete="email" spellcheck="false" placeholder="you@example.com" /></label>
 				<div class="row">
-					<Button type="submit" disabled={finding}>{finding ? 'Looking up settings…' : 'Continue'}</Button>
-					{#if data.allowPrivate}<Button type="button" variant="ghost" onclick={useDevServer}>Use the dev mail server</Button>{/if}
+					<Button type="submit" disabled={finding}>{finding ? t('acc.mb.finding') : t('acc.mb.continue')}</Button>
+					{#if data.allowPrivate}<Button type="button" variant="ghost" onclick={useDevServer}>{t('acc.mb.useDev')}</Button>{/if}
 				</div>
 			</form>
 		{:else}
@@ -139,46 +131,46 @@
 					};
 				}}
 			>
-				{#if source}<Alert tone={source === 'guess' ? 'warning' : 'info'}>{sourceText[source]}</Alert>{/if}
+				{#if source}<Alert tone={source === 'guess' ? 'warning' : 'info'}>{t(`acc.mb.src.${source}` as MessageKey)}</Alert>{/if}
 				{#if f?.message && !f.done}<Alert tone="danger" live>{f.message}</Alert>{/if}
-				<label>Email address<input name="email" type="email" bind:value={email} required /></label>
-				<label>Your name <span class="opt">(shown to people you write to)</span><input name="name" bind:value={name} autocomplete="name" /></label>
-				<label>Password<input name="password" type="password" required autocomplete="current-password" /></label>
-				<p class="hint">Gmail, iCloud, Outlook and Fastmail need an <b>app password</b> here, not your normal one.</p>
+				<label>{t('acc.mb.email')}<input name="email" type="email" bind:value={email} required /></label>
+				<label>{t('acc.mb.yourName')} <span class="opt">{t('acc.mb.yourNameHint')}</span><input name="name" bind:value={name} autocomplete="name" /></label>
+				<label>{t('acc.mb.password')}<input name="password" type="password" required autocomplete="current-password" /></label>
+				<p class="hint">{t('acc.mb.appPassword')}</p>
 
-				<button type="button" class="toggle" onclick={() => (advanced = !advanced)}>{advanced ? '▾' : '▸'} Server settings</button>
+				<button type="button" class="toggle" onclick={() => (advanced = !advanced)}>{advanced ? '▾' : '▸'} {t('acc.mb.server')}</button>
 				<input type="hidden" name="protocol" value={s.protocol} />
 				<div class="advanced" hidden={!advanced}>
-					<label>Protocol
+					<label>{t('acc.mb.protocol')}
 						<select bind:value={s.protocol}>
-							<option value="imap">IMAP (recommended)</option>
+							<option value="imap">{t('acc.mb.recommended', { protocol: 'IMAP' })}</option>
 							<option value="jmap">JMAP</option>
 							<option value="pop3">POP3</option>
 						</select>
 					</label>
-					<label>Username<input name="username" bind:value={s.username} placeholder={email} /></label>
+					<label>{t('acc.mb.username')}<input name="username" bind:value={s.username} placeholder={email} /></label>
 					{#if s.protocol === 'jmap'}
-						<label class="wide">JMAP session URL<input name="jmapUrl" bind:value={s.jmapUrl} placeholder="https://example.com/.well-known/jmap" /></label>
+						<label class="wide">{t('acc.mb.jmapUrl')}<input name="jmapUrl" bind:value={s.jmapUrl} placeholder="https://example.com/.well-known/jmap" /></label>
 					{:else}
 						<fieldset>
-							<legend>Incoming ({s.protocol.toUpperCase()})</legend>
-							<label>Server<input name="host" bind:value={s.incoming.host} /></label>
-							<label>Port<input name="port" type="number" bind:value={s.incoming.port} /></label>
-							<label>Security
+							<legend>{t('acc.mb.incoming', { protocol: s.protocol.toUpperCase() })}</legend>
+							<label>{t('acc.mb.host')}<input name="host" bind:value={s.incoming.host} /></label>
+							<label>{t('acc.mb.port')}<input name="port" type="number" bind:value={s.incoming.port} /></label>
+							<label>{t('acc.mb.security')}
 								<select name="security" bind:value={s.incoming.security}>
 									<option value="tls">TLS</option><option value="starttls">STARTTLS</option>
-									{#if data.allowPrivate}<option value="plain">None (local only)</option>{/if}
+									{#if data.allowPrivate}<option value="plain">{t('acc.mb.plain')}</option>{/if}
 								</select>
 							</label>
 						</fieldset>
 						<fieldset>
-							<legend>Outgoing (SMTP)</legend>
-							<label>Server<input name="smtpHost" bind:value={s.smtp.host} /></label>
-							<label>Port<input name="smtpPort" type="number" bind:value={s.smtp.port} /></label>
-							<label>Security
+							<legend>{t('acc.mb.outgoing')}</legend>
+							<label>{t('acc.mb.host')}<input name="smtpHost" bind:value={s.smtp.host} /></label>
+							<label>{t('acc.mb.port')}<input name="smtpPort" type="number" bind:value={s.smtp.port} /></label>
+							<label>{t('acc.mb.security')}
 								<select name="smtpSecurity" bind:value={s.smtp.security}>
 									<option value="tls">TLS</option><option value="starttls">STARTTLS</option>
-									{#if data.allowPrivate}<option value="plain">None (local only)</option>{/if}
+									{#if data.allowPrivate}<option value="plain">{t('acc.mb.plain')}</option>{/if}
 								</select>
 							</label>
 						</fieldset>
@@ -188,8 +180,8 @@
 					<input type="hidden" name="security" value="tls" /><input type="hidden" name="smtpSecurity" value="tls" />
 				{/if}
 				<div class="row">
-					<Button type="submit" disabled={submitting}>{submitting ? 'Connecting…' : 'Connect'}</Button>
-					<Button type="button" variant="ghost" onclick={() => (step = 'email')}>Back</Button>
+					<Button type="submit" disabled={submitting}>{submitting ? t('acc.mb.connecting') : t('acc.mb.connect')}</Button>
+					<Button type="button" variant="ghost" onclick={() => (step = 'email')}>{t('acc.mb.back')}</Button>
 				</div>
 			</form>
 		{/if}

@@ -22,14 +22,14 @@ func GET(ctx *kit.Ctx) error {
 	parts := strings.SplitN(c, ".", 3)
 	q := ctx.URL().Query()
 	if !ok || len(parts) != 3 || q.Get("state") != parts[1] {
-		return back("error", "The sign-in took too long or came from elsewhere. Try again.")
+		return back("error", ctx.T("e.oauthState"))
 	}
 	if e := q.Get("error"); e != "" {
-		return back("error", "Access wasn’t granted ("+e+").")
+		return back("error", ctx.T("e.oauthDenied", map[string]any{"error": e}))
 	}
 	email, err := app.Current.OAuthFinish(ctx, app.UserID(ctx), parts[0], q.Get("code"), parts[2])
 	if err != nil {
-		return back("error", "Couldn’t connect: "+err.Error())
+		return back("error", ctx.T("e.connect", map[string]any{"error": err.Error()}))
 	}
 	return back("connected", email)
 }

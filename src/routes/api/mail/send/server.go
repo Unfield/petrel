@@ -23,10 +23,10 @@ func POST(ctx *kit.Ctx, in app.Draft) (Out, error) {
 		return Out{}, err
 	}
 	if len(m.To)+len(m.Cc)+len(m.Bcc) == 0 {
-		return Out{}, kit.Error(http.StatusBadRequest, "Add at least one recipient.")
+		return Out{}, kit.Error(http.StatusBadRequest, ctx.T("e.noRecipient"))
 	}
 	if err := p.Send(ctx, m); err != nil {
-		return Out{}, app.MailError(err)
+		return Out{}, app.MailError(ctx, err)
 	}
 	bg := context.WithoutCancel(ctx)
 	if a, id, ok := app.SplitID(in.DraftID); ok && a == in.AccountID {

@@ -57,7 +57,7 @@ var Actions = kit.Actions{
 	}),
 	"default": kit.FormAction(func(ctx *kit.Ctx, in Credentials) (struct{}, error) {
 		if app.Current.Direct() {
-			return struct{}{}, kit.FormError("Sign in with your email account.")
+			return struct{}{}, kit.FormError(ctx.T("e.useMailbox"))
 		}
 		next := app.SafeNext(in.Next)
 		_, err := app.Current.Accounts.SignIn(ctx, in.Email, in.Password, in.Remember)

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '@ternkit/tern';
+	import { page, t } from '@ternkit/tern';
 	import { Button } from '@ternkit/tern/ui';
 </script>
 
@@ -9,9 +9,9 @@
 
 <main class="error">
 	<p class="status">{page.status}</p>
-	<h1>{page.status === 404 ? 'This page doesn’t exist' : 'Something went wrong'}</h1>
+	<h1>{page.status === 404 ? t('acc.error.notFound') : t('acc.error.failed')}</h1>
 	{#if page.error?.message && page.status !== 404}<p>{page.error.message}</p>{/if}
-	<Button href="/">Back to the home page</Button>
+	<Button href="/">{t('acc.error.home')}</Button>
 </main>
 
 <style>

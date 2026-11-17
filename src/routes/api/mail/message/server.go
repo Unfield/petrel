@@ -24,11 +24,11 @@ func GET(ctx *kit.Ctx, in In) (app.MessageView, error) {
 	user := app.UserID(ctx)
 	p, _, err := app.Current.Mail.Provider(ctx, user, account)
 	if err != nil {
-		return app.MessageView{}, app.MailError(err)
+		return app.MessageView{}, app.MailError(ctx, err)
 	}
 	m, err := p.Get(ctx, id)
 	if err != nil {
-		return app.MessageView{}, app.MailError(err)
+		return app.MessageView{}, app.MailError(ctx, err)
 	}
 	boxes, _ := app.Current.Mail.Boxes(ctx, user, account, false)
 	app.Current.Mail.Remember(ctx, user, m.From, 1)

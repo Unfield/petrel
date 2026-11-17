@@ -1,20 +1,21 @@
 <script lang="ts">
+	import { t } from '@ternkit/tern';
 	import { Alert, Button } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 </script>
 
-<svelte:head><title>Confirm your email · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.verify.title')} · Petrel</title></svelte:head>
 
 <section class="card" aria-labelledby="verify-title">
-	<h1 id="verify-title">Confirm your email</h1>
+	<h1 id="verify-title">{t('acc.verify.title')}</h1>
 	{#if data.verified}
-		<Alert tone="success">{data.email} is confirmed.</Alert>
+		<Alert tone="success">{t('acc.verify.confirmed', { email: data.email })}</Alert>
 	{:else}
-		<Alert tone="danger">This link is invalid or has expired. Send a new one from your settings.</Alert>
+		<Alert tone="danger">{t('acc.verify.invalid')}</Alert>
 	{/if}
-	<Button href="/mail" variant="secondary">Go to the dashboard</Button>
+	<Button href="/mail" variant="secondary">{t('acc.verify.toMail')}</Button>
 </section>
 
 <style>

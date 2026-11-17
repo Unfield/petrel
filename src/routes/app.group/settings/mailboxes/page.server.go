@@ -53,7 +53,7 @@ type Done struct {
 var Actions = kit.Actions{
 	"connect": kit.FormAction(func(ctx *kit.Ctx, in Connect) (Done, error) {
 		if app.Current.Direct() {
-			return Done{}, kit.FormError("This Petrel reads the mailbox you signed in with.")
+			return Done{}, kit.FormError(ctx.T("acc.mb.directOnly"))
 		}
 		s := mail.Settings{Protocol: mail.Protocol(in.Protocol), Username: strings.TrimSpace(in.Username)}
 		if s.Username == "" {
@@ -61,15 +61,15 @@ var Actions = kit.Actions{
 		}
 		if s.Protocol == mail.JMAP {
 			if !strings.HasPrefix(in.JMAPURL, "https://") && !(app.Current.Mail.AllowPrivate() && strings.HasPrefix(in.JMAPURL, "http://")) {
-				return Done{}, kit.FieldError("jmapUrl", "Enter the JMAP session URL, starting with https://.")
+				return Done{}, kit.FieldError("jmapUrl", ctx.T("e.jmapUrl"))
 			}
 			s.JMAPURL = in.JMAPURL
 		} else {
 			if in.Host == "" || in.Port == 0 {
-				return Done{}, kit.FieldError("host", "Enter the incoming server and its port.")
+				return Done{}, kit.FieldError("host", ctx.T("e.host"))
 			}
 			if in.SMTPHost == "" || in.SMTPPort == 0 {
-				return Done{}, kit.FieldError("smtpHost", "Enter the SMTP server and its port, to send mail.")
+				return Done{}, kit.FieldError("smtpHost", ctx.T("e.smtpHost"))
 			}
 			s.Incoming = mail.Server{Host: strings.TrimSpace(in.Host), Port: in.Port, Security: mail.Security(in.Security)}
 			s.SMTP = mail.Server{Host: strings.TrimSpace(in.SMTPHost), Port: in.SMTPPort, Security: mail.Security(in.SMTPSecurity)}
@@ -77,10 +77,10 @@ var Actions = kit.Actions{
 		c := mail.Credentials{Username: s.Username, Password: in.Password}
 		if err := app.Current.Mail.Test(ctx, s, c); err != nil {
 			var ke *kit.HTTPError
-			if e := app.MailError(err); asHTTP(e, &ke) {
+			if e := app.MailError(ctx, err); asHTTP(e, &ke) {
 				return Done{}, kit.FormError(ke.Message)
 			}
-			return Done{}, kit.FormError("Couldn’t connect: " + err.Error())
+			return Done{}, kit.FormError(ctx.T("e.connect", map[string]any{"error": err.Error()}))
 		}
 		if _, err := app.Current.Mail.Create(ctx, app.UserID(ctx), in.Email, strings.TrimSpace(in.Name), s, c); err != nil {
 			return Done{}, kit.FormError(err.Error())
@@ -89,7 +89,7 @@ var Actions = kit.Actions{
 	}),
 	"remove": kit.FormAction(func(ctx *kit.Ctx, in Remove) (Done, error) {
 		if err := app.Current.Mail.Delete(ctx, app.UserID(ctx), in.ID); err != nil {
-			return Done{}, kit.Error(http.StatusNotFound, "That mailbox isn’t connected.")
+			return Done{}, kit.Error(http.StatusNotFound, ctx.T("e.notConnected"))
 		}
 		return Done{Done: "removed"}, nil
 	}),

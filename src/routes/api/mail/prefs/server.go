@@ -16,7 +16,7 @@ var Access = kit.SignedIn
 func POST(ctx *kit.Ctx) error {
 	body, err := io.ReadAll(io.LimitReader(ctx.Request.Body, 64<<10+1))
 	if err != nil || len(body) > 64<<10 || !json.Valid(body) {
-		return kit.Error(http.StatusBadRequest, "Settings are too large or not JSON.")
+		return kit.Error(http.StatusBadRequest, ctx.T("e.prefs"))
 	}
 	if err := app.Current.Mail.SavePrefs(ctx, app.UserID(ctx), string(body)); err != nil {
 		return err

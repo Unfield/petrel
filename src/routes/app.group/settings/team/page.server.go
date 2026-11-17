@@ -22,7 +22,7 @@ type Page struct {
 
 func Load(ctx *kit.Ctx) (Page, error) {
 	acc := app.Current.Accounts
-	m, err := acc.RequireTeam(ctx)
+	m, err := app.PersonalTeam(ctx)
 	if err != nil {
 		return Page{}, err
 	}
@@ -72,7 +72,7 @@ type Done struct {
 // do runs fn for a signed-in user in a team, with the errors users cause,
 // such as removing the last owner, as form errors.
 func do(ctx *kit.Ctx, done string, fn func() error) (Done, error) {
-	if _, err := app.Current.Accounts.RequireTeam(ctx); err != nil {
+	if _, err := app.PersonalTeam(ctx); err != nil {
 		return Done{}, err
 	}
 	if err := fn(); err != nil {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from '@ternkit/tern';
 	import { ActivityLog, Card, Devices, LinkedAccounts, Passkeys, TwoStep } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 
@@ -6,10 +7,10 @@
 	const recoveryCodes = $derived((form as { recoveryCodes?: string[] } | null)?.recoveryCodes);
 </script>
 
-<svelte:head><title>Security · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.security.title')} · Petrel</title></svelte:head>
 
-<h1>Security</h1>
-<p class="lead">How you sign in, and where you’re signed in.</p>
+<h1>{t('acc.security.title')}</h1>
+<p class="lead">{t('acc.security.lead')}</p>
 
 <div class="sections">
 	<Card>

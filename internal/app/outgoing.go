@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	gomail "net/mail"
 	"strings"
@@ -24,14 +25,14 @@ type Draft struct {
 	DraftID     string    `json:"draftId"`     // the saved draft this replaces
 }
 
-func parseList(s, field string) ([]mail.Address, error) {
+func parseList(ctx context.Context, s, field string) ([]mail.Address, error) {
 	s = strings.TrimSpace(strings.Trim(strings.ReplaceAll(s, ";", ","), ", "))
 	if s == "" {
 		return nil, nil
 	}
 	list, err := gomail.ParseAddressList(s)
 	if err != nil {
-		return nil, kit.Error(http.StatusBadRequest, "Check the addresses in “"+field+"”.")
+		return nil, kit.Error(http.StatusBadRequest, tr(ctx, "e.addresses", map[string]any{"field": field}))
 	}
 	out := make([]mail.Address, 0, len(list))
 	for _, a := range list {
@@ -45,14 +46,14 @@ func parseList(s, field string) ([]mail.Address, error) {
 func (m *MailAccounts) Outgoing(ctx *kit.Ctx, userID int64, d Draft, strict bool) (mail.Provider, mail.Outgoing, error) {
 	p, acc, err := m.Provider(ctx, userID, d.AccountID)
 	if err != nil {
-		return nil, mail.Outgoing{}, MailError(err)
+		return nil, mail.Outgoing{}, MailError(ctx, err)
 	}
 	out := mail.Outgoing{From: mail.Address{Name: acc.DisplayName, Email: acc.Email}, Subject: d.Subject, HTML: d.HTML, Text: d.Text}
 	for _, f := range []struct {
 		raw, name string
 		into      *[]mail.Address
 	}{{d.To, "To", &out.To}, {d.Cc, "Cc", &out.Cc}, {d.Bcc, "Bcc", &out.Bcc}} {
-		list, err := parseList(f.raw, f.name)
+		list, err := parseList(ctx, f.raw, f.name)
 		if err != nil && strict {
 			return nil, out, err
 		}
@@ -65,7 +66,7 @@ func (m *MailAccounts) Outgoing(ctx *kit.Ctx, userID int64, d Draft, strict bool
 		}
 	}
 	if out.Attachments, err = m.Files(ctx, userID, d.Attachments); err != nil {
-		return nil, out, MailError(err)
+		return nil, out, MailError(ctx, err)
 	}
 	return p, out, nil
 }

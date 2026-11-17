@@ -82,14 +82,14 @@ func (a *App) DirectSignIn(ctx *kit.Ctx, email, password string) error {
 	email = strings.ToLower(strings.TrimSpace(email))
 	s, ok := a.directFor(email)
 	if !ok {
-		return kit.FieldError("email", "This Petrel doesn’t serve that address’s domain.")
+		return kit.FieldError("email", ctx.T("e.domain"))
 	}
 	c := mail.Credentials{Username: email, Password: password}
 	if err := a.Mail.Test(ctx, s, c); err != nil {
 		if errors.Is(err, mail.ErrAuth) {
-			return kit.FormError("That email address or password isn’t right.")
+			return kit.FormError(ctx.T("e.credentials"))
 		}
-		return kit.FormError("Couldn’t reach the mail server. Try again in a moment.")
+		return kit.FormError(ctx.T("e.unreachable"))
 	}
 	local := email[:strings.IndexByte(email, '@')]
 	u, err := a.Accounts.SignInWith(ctx, accounts.Identity{Provider: "mail", Subject: email, Email: email, EmailVerified: true, Name: local})

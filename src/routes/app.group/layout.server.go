@@ -21,10 +21,10 @@ type Shell struct {
 }
 
 // LayoutLoad sends signed-out visitors to sign in, and back here after,
-// and users without a team to make one.
+// and gives users without a team one of their own.
 func LayoutLoad(ctx *kit.Ctx) (Shell, error) {
 	acc := app.Current.Accounts
-	m, err := acc.RequireTeam(ctx)
+	m, err := app.PersonalTeam(ctx)
 	if err != nil {
 		return Shell{}, err
 	}

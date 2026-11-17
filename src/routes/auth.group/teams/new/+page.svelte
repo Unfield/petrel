@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { t } from '@ternkit/tern';
 	import { NewTeam } from '@ternkit/tern/ui';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 </script>
 
-<svelte:head><title>Create a team · Petrel</title></svelte:head>
+<svelte:head><title>{t('acc.newTeam.title')} · Petrel</title></svelte:head>
 
 <NewTeam {form} cancelHref={data.hasTeam ? '/mail' : undefined} />
