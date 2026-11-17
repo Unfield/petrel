@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -84,13 +85,28 @@ func (a *App) DirectSignIn(ctx *kit.Ctx, email, password string) error {
 	if !ok {
 		return kit.FieldError("email", ctx.T("e.domain"))
 	}
+	// Failed tries count per address and per client, so neither one
+	// mailbox nor many can be guessed at through Petrel.
+	client := kit.ClientIP(ctx.Request)
+	for _, w := range []struct {
+		l   *window
+		key string
+	}{{limits.signInAddress, email}, {limits.signInClient, client}} {
+		if wait := w.l.Blocked(w.key); wait > 0 {
+			ctx.SetHeader("Retry-After", strconv.Itoa(int(wait.Seconds())+1))
+			return kit.FormError(ctx.TB("tern.accounts.error.tooMany", nil))
+		}
+	}
 	c := mail.Credentials{Username: email, Password: password}
 	if err := a.Mail.Test(ctx, s, c); err != nil {
 		if errors.Is(err, mail.ErrAuth) {
+			limits.signInAddress.Add(email)
+			limits.signInClient.Add(client)
 			return kit.FormError(ctx.T("e.credentials"))
 		}
 		return kit.FormError(ctx.T("e.unreachable"))
 	}
+	limits.signInAddress.Reset(email)
 	local := email[:strings.IndexByte(email, '@')]
 	u, err := a.Accounts.SignInWith(ctx, accounts.Identity{Provider: "mail", Subject: email, Email: email, EmailVerified: true, Name: local})
 	if err != nil {

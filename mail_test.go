@@ -298,3 +298,23 @@ func TestDirectSignIn(t *testing.T) {
 		t.Errorf("the mailbox password stayed after signing out: %+v", n)
 	}
 }
+
+// TestSignInLimit: Petrel mustn't be a way to guess mailbox passwords.
+func TestSignInLimit(t *testing.T) {
+	ip, sp, _ := mailServer(t)
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	t.Setenv("PETREL_AUTH_MODE", "direct")
+	t.Setenv("PETREL_DIRECT_SERVERS", `[{"domain":"example.test","protocol":"imap",
+		"incoming":{"host":"127.0.0.1","port":`+strconv.Itoa(ip)+`,"security":"plain"},
+		"smtp":{"host":"127.0.0.1","port":`+strconv.Itoa(sp)+`,"security":"plain"}}]`)
+	c := newClient(t)
+	guess := url.Values{"email": {"limit@example.test"}, "password": {"guess"}}
+	for i := range 5 {
+		if page := c.PostForm("/login?/mailbox", guess); page.Status != 400 || !strings.Contains(page.Body, "isn’t right") {
+			t.Fatalf("guess %d: %d %s", i, page.Status, page.Body)
+		}
+	}
+	if page := c.PostForm("/login?/mailbox", guess); page.Status != 400 || !strings.Contains(page.Body, "Too many") || page.Header.Get("Retry-After") == "" {
+		t.Errorf("the sixth guess: %d %v %s", page.Status, page.Header, page.Body)
+	}
+}

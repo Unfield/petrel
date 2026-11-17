@@ -55,6 +55,9 @@ var Actions = kit.Actions{
 		if app.Current.Direct() {
 			return Done{}, kit.FormError(ctx.T("acc.mb.directOnly"))
 		}
+		if err := app.LimitConnect(ctx); err != nil {
+			return Done{}, err
+		}
 		s := mail.Settings{Protocol: mail.Protocol(in.Protocol), Username: strings.TrimSpace(in.Username)}
 		if s.Username == "" {
 			s.Username = in.Email

@@ -15,5 +15,8 @@ type In struct {
 }
 
 func GET(ctx *kit.Ctx, in In) (mail.Discovered, error) {
+	if err := app.LimitDiscover(ctx); err != nil {
+		return mail.Discovered{}, err
+	}
 	return mail.Discover(ctx, in.Email, app.Current.Mail.AllowPrivate()), nil
 }
