@@ -68,6 +68,7 @@
 			"week": "Letzte 7 Tage"
 		},
 		"a": {
+			"collapse": "Einklappen",
 			"archive": "Archivieren",
 			"delete": "Löschen",
 			"deleteForever": "Endgültig löschen",

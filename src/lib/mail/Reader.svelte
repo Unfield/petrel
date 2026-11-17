@@ -178,7 +178,7 @@
 									<time datetime={m.date} title={new Date(m.date).toLocaleString()}>{fmtLong(m.date)}</time>
 									<button class="tb" onclick={() => reply(m, 'reply')} title={t('m.a.reply')}><Icon name="reply" /></button>
 									{#if it.msgs.length > 1 && i !== it.msgs.length - 1}
-										<button class="tb" onclick={() => store.expanded.delete(m.id)} title="Collapse"><Icon name="up" /></button>
+										<button class="tb" onclick={() => store.expanded.delete(m.id)} title={t('m.a.collapse')}><Icon name="up" /></button>
 									{/if}
 								</div>
 							</header>

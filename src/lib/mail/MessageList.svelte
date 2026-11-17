@@ -117,7 +117,7 @@
 			>
 		{/each}
 	</div>
-	{#each store.errors as e (e)}<div class="list-error"><Icon name="alert" size={16} />{e}</div>{/each}
+	{#each [...new Set(store.errors)] as e (e)}<div class="list-error"><Icon name="alert" size={16} />{e}</div>{/each}
 	<div class="list" class:selecting={n > 0} role="listbox" aria-label={store.folderName()}>
 		{#if store.loading && !store.items.length}
 			{#each Array(8) as _, i (i)}

@@ -11,7 +11,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.65.0",
-		"@ternkit/tern": "^1.17.0",
+		"@ternkit/tern": "^1.17.2",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.8",
 		"typescript": "^6.0.0",

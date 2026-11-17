@@ -2,6 +2,7 @@
 	import '@ternkit/tern/ui/theme.css';
 	import '$lib/petrel.css';
 	import { Toaster } from '@ternkit/tern/ui';
+	import Tips from '$lib/Tips.svelte';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -10,6 +11,7 @@
 {@render children()}
 
 <Toaster />
+<Tips />
 
 <style>
 	:global(body) {
