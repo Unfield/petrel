@@ -48,3 +48,9 @@
 	--tern-accent-soft: #1d2a4d;
 	--tern-ring: #6b91fa;
 }
+
+/* Tern's Button sets a height but not box-sizing, so as a link (href) it came
+   out 2px taller than as a button, whose border browsers count inside. */
+a.tern-btn {
+	box-sizing: border-box;
+}

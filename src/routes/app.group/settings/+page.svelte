@@ -31,16 +31,16 @@
 
 	{#if !data.direct}
 	<Card title={t('acc.settings.email')} level={2}>
-		<p class="email">
-			{data.user.email}
+		<div class="email">
+			<span>{data.user.email}</span>
 			{#if data.user.emailVerified}<Badge tone="success">{t('acc.settings.confirmed')}</Badge>{:else}<Badge tone="warning">{t('acc.settings.notConfirmed')}</Badge>{/if}
-		</p>
-		{#if !data.user.emailVerified}
-			<Form action="?/verify" reset={false}>
-				<div><Button type="submit" variant="secondary" size="sm">{t('acc.settings.resend')}</Button></div>
-			</Form>
-			{#if done === 'verify'}<Alert tone="success" live>{t('acc.settings.resent')}</Alert>{/if}
-		{/if}
+			{#if !data.user.emailVerified}
+				<Form action="?/verify" reset={false}>
+					<Button type="submit" variant="secondary" size="sm">{t('acc.settings.resend')}</Button>
+				</Form>
+			{/if}
+		</div>
+		{#if done === 'verify'}<Alert tone="success" live>{t('acc.settings.resent')}</Alert>{/if}
 		<Form action="?/email" rules={forms.email} {form}>
 			<Field label={t('acc.settings.newEmail')} name="email" description={t('acc.settings.newEmailHelp')}>
 				<Input type="email" autocomplete="email" spellcheck="false" />
@@ -94,9 +94,13 @@
 	}
 	.email {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.5rem;
+	}
+	.email :global(.tern-form) {
 		margin: 0;
+		margin-inline-start: 0.25rem;
 	}
 	p {
 		margin: 0;

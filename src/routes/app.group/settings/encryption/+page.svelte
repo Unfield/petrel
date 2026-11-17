@@ -67,7 +67,10 @@
 				</div>
 				{#if which === 'generate' && (f?.errors?.passphrase || f?.errors?.again || f?.errors?.email)}<span class="err">{f?.errors?.passphrase || f?.errors?.again || f?.errors?.email}</span>{/if}
 				<p class="hint">{t('acc.pgp.passphraseHint')}</p>
-				<div class="row"><Button type="submit" size="sm">{t('acc.pgp.generateButton')}</Button></div>
+				<div class="row">
+						<Button type="submit" size="sm">{t('acc.pgp.generateButton')}</Button>
+						{#if !showImport}<Button type="button" size="sm" variant="ghost" onclick={() => (showImport = true)}>{t('acc.pgp.importOwn')}</Button>{/if}
+					</div>
 			</form>
 		{/if}
 
@@ -83,8 +86,8 @@
 				{#if which === 'import' && f?.errors?.passphrase}<span class="err">{f.errors.passphrase}</span>{/if}
 				<div class="row"><Button type="submit" size="sm">{t('acc.pgp.importButton')}</Button><Button size="sm" variant="ghost" onclick={() => (showImport = false)}>{t('acc.box.cancel')}</Button></div>
 			</form>
-		{:else}
-			<div class="row"><Button size="sm" variant="ghost" onclick={() => (showImport = true)}>{t('acc.pgp.importOwn')}</Button></div>
+		{:else if !free.length}
+			<div class="row gap"><Button size="sm" variant="secondary" onclick={() => (showImport = true)}>{t('acc.pgp.importOwn')}</Button></div>
 		{/if}
 	</Card>
 
@@ -137,7 +140,8 @@
 	.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 	.two.top { align-items: start; margin-top: 0.5rem; }
 	label { display: grid; gap: 0.375rem; font-weight: 550; font-size: 0.9rem; }
-	.row { display: flex; gap: 0.5rem; align-items: center; }
+	.row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+	.row.gap { margin-top: 1rem; }
 	.err { color: var(--tern-danger); font-size: 0.85rem; }
 	input, select, textarea {
 		font: inherit; font-weight: 400; height: 2.5rem; padding-inline: 0.75rem; border-radius: var(--tern-radius-sm, 8px);

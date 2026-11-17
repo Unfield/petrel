@@ -10,6 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `PETREL_EXTRA_PORTS` allows more ports on public addresses, for servers outside the usual ports, such as a calendar server on 8443.
 
+### Fixed
+
+- An empty folder's "All done" message was squeezed into 30 pixels, with its icon and text on top of each other.
+- The To field in Compose showed a focus box that the other fields don't have.
+- Spacing on the settings pages:
+  - **Settings:** the resend-confirmation button sits beside the unconfirmed address, not pressed against the field under it.
+  - **Encryption:** "Import private key" sits beside "Create key".
+  - **Contacts:** the toolbar buttons have the same height.
+
 ## [0.1.0] - 2026-11-17
 
 The first release: a webmail client for any IMAP, JMAP or POP3 mailbox, in English and German. See the [README](README.md#features) for the full feature list and settings.

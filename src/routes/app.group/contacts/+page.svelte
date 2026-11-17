@@ -114,7 +114,9 @@
 <style>
 	.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
 	.tools { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-	.file { position: relative; display: inline-flex; align-items: center; height: 2rem; padding-inline: 0.75rem; border-radius: var(--tern-radius-sm, 8px); border: 1px solid var(--tern-border-strong); font-size: 0.875rem; font-weight: 550; cursor: pointer; }
+	.file { position: relative; box-sizing: border-box; display: inline-flex; align-items: center; height: calc(var(--tern-control-height) - 0.5rem); padding-inline: 0.7rem; border-radius: var(--tern-radius-sm, 8px); border: 1px solid var(--tern-border-strong); background: var(--tern-surface); box-shadow: var(--tern-shadow); font-size: 0.8125rem; font-weight: 550; line-height: 1; cursor: pointer; }
+	.file:hover { background: var(--tern-surface-2); }
+	.file:focus-within { outline: 2px solid var(--tern-ring); outline-offset: 2px; }
 	.file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 	.bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: 1.25rem 0 0.5rem; flex-wrap: wrap; }
 	.tabs { display: flex; gap: 0.25rem; }

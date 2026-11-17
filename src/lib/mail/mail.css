@@ -40,7 +40,7 @@
 .pm, .pm * { box-sizing: border-box; }
 .pm [hidden] { display: none !important; }
 .pm button { font: inherit; color: inherit; }
-.pm :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:where(.pm) :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .pm * { scrollbar-width: thin; scrollbar-color: var(--surface-3) transparent; }
 .ic { flex: none; display: block; }
 .ic.filled { fill: currentColor; }

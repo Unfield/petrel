@@ -98,7 +98,7 @@
 				<button class="tb" onclick={() => store.folderHere('readAll')} title={t('m.fo.readAll')}><Icon name="mailOpen" /></button>
 			{/if}
 			{#if (store.folder === 'trash' || store.folder === 'junk' || store.boxRole(store.folder) === 'trash') && store.items.length}
-				<button class="btn sm empty" onclick={() => confirm(t('m.fo.emptyConfirm')) && store.folderHere('empty')}>{store.folder === 'junk' ? t('m.fo.emptyJunk') : t('m.fo.emptyTrash')}</button>
+				<button class="btn sm empty-btn" onclick={() => confirm(t('m.fo.emptyConfirm')) && store.folderHere('empty')}>{store.folder === 'junk' ? t('m.fo.emptyJunk') : t('m.fo.emptyTrash')}</button>
 			{/if}
 			<button class="tb" class:spin={spinning || store.loading} onclick={refresh} title={t('m.a.refresh')}><Icon name="refresh" /></button>
 		</div>
@@ -188,7 +188,7 @@
 </section>
 
 <style>
-	.empty {
+	.empty-btn {
 		height: 30px;
 		padding-inline: 10px;
 		font-size: 12.5px;
