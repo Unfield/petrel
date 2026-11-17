@@ -94,6 +94,12 @@
 				</div>
 			</div>
 			<span class="spacer"></span>
+			{#if unreadItems && store.boxesHere().length}
+				<button class="tb" onclick={() => store.folderHere('readAll')} title={t('m.fo.readAll')}><Icon name="mailOpen" /></button>
+			{/if}
+			{#if (store.folder === 'trash' || store.folder === 'junk' || store.boxRole(store.folder) === 'trash') && store.items.length}
+				<button class="btn sm empty" onclick={() => confirm(t('m.fo.emptyConfirm')) && store.folderHere('empty')}>{store.folder === 'junk' ? t('m.fo.emptyJunk') : t('m.fo.emptyTrash')}</button>
+			{/if}
 			<button class="tb" class:spin={spinning || store.loading} onclick={refresh} title={t('m.a.refresh')}><Icon name="refresh" /></button>
 		</div>
 	{/if}
@@ -180,3 +186,12 @@
 		{/if}
 	</div>
 </section>
+
+<style>
+	.empty {
+		height: 30px;
+		padding-inline: 10px;
+		font-size: 12.5px;
+		margin-inline-end: 4px;
+	}
+</style>

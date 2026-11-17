@@ -141,8 +141,13 @@ docs/                design notes
 - **Organizing:**
   - archive, delete and spam with undo; move to any folder
   - star; labels, stored as IMAP and JMAP keywords
+  - make, rename and delete folders; empty Trash and Spam; mark all as read
+  - unsubscribe from mailing lists (one click where the list allows it), block senders
+  - print, show the original, download as .eml
   - snooze: messages come back to the inbox, unread, on time
   - filters and a vacation reply, run by the mail server as Sieve (ManageSieve for IMAP, JMAP Sieve and VacationResponse for JMAP)
+- **Contacts:** an address book with vCard import and export, beside the people learned from your mail
+- **Desktop notifications** for new mail while Petrel is in the background
 - **Yours:**
   - light, dark and system mode; four themes; accent colors; three densities; three layouts
   - English and German, plus a mirrored right-to-left layout
@@ -171,10 +176,6 @@ People then sign in with their email address and its password. Petrel keeps the 
 ### Gmail and Outlook
 
 Register an OAuth app with Google or Microsoft and set `PETREL_GOOGLE_CLIENT_ID` / `PETREL_GOOGLE_CLIENT_SECRET` or `PETREL_MICROSOFT_CLIENT_ID` / `PETREL_MICROSOFT_CLIENT_SECRET`. The redirect URL is `<BASE_URL>/api/mail/oauth/callback`. **Connect Gmail** and **Connect Outlook** buttons then appear in Settings → Mailboxes.
-
-## Known gaps
-
-- **Contacts:** there's no address book yet beyond suggestions learned from your mail.
 
 ## Contributing
 

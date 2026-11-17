@@ -6,7 +6,8 @@
 		"signOut": "Abmelden",
 		"language": "Sprache",
 		"mailboxes": "Postfächer",
-		"team": "Team"
+		"team": "Team",
+		"contacts": "Kontakte"
 	},
 	"home": {
 		"tagline": "Moderne Open-Source-Webmail",
@@ -202,7 +203,11 @@
 			"labels": "Labels",
 			"labelsSub": "Labels werden als Schlüsselwörter mit deinem Mailserver synchronisiert.",
 			"addLabel": "Label hinzufügen",
-			"remove": "Entfernen"
+			"remove": "Entfernen",
+			"notify": "Desktop-Benachrichtigungen",
+			"notifySub": "Neue Mails zeigen, während Petrel im Hintergrund ist",
+			"notifyNone": "Dieser Browser kann keine Benachrichtigungen zeigen.",
+			"notifyBlocked": "Der Browser blockiert Benachrichtigungen für Petrel. Erlaube sie in den Website-Einstellungen."
 		},
 		"p": {
 			"placeholder": "Befehl eingeben…",
@@ -250,7 +255,37 @@
 		"labels": "Labels",
 		"storage": "{used} von {total} belegt",
 		"storageUsed": "{used} belegt",
-		"storageOf": "Speicher von {email}"
+		"storageOf": "Speicher von {email}",
+		"r": {
+			"date": "Datum",
+			"attachments": "Anhänge",
+			"print": "Drucken",
+			"source": "Original anzeigen",
+			"download": "Herunterladen (.eml)",
+			"block": "{email} blockieren",
+			"blocked": "{email} blockiert: Mails von dort landen ab jetzt im Papierkorb",
+			"unsubscribe": "Abbestellen",
+			"unsubscribed": "Abbestellt. Die Liste sollte nicht mehr schreiben.",
+			"unsubPage": "Die Seite der Liste ist in einem neuen Tab offen: Schließ das dort ab."
+		},
+		"fo": {
+			"new": "Neuer Ordner",
+			"name": "Ordnername",
+			"rename": "Umbenennen",
+			"delete": "Ordner löschen",
+			"deleteConfirm": "Den Ordner „{name}“ und {n, plural, one {die Nachricht} other {die # Nachrichten}} darin löschen? Das lässt sich nicht rückgängig machen.",
+			"readAll": "Alle als gelesen markieren",
+			"emptyTrash": "Papierkorb leeren",
+			"emptyJunk": "Spam leeren",
+			"emptyConfirm": "Alles in diesem Ordner endgültig löschen? Das lässt sich nicht rückgängig machen.",
+			"done": {
+				"create": "Ordner erstellt",
+				"rename": "Ordner umbenannt",
+				"delete": "Ordner gelöscht",
+				"empty": "{n, plural, one {# Nachricht gelöscht} other {# Nachrichten gelöscht}}",
+				"readAll": "{n, plural, one {# Nachricht als gelesen markiert} other {# Nachrichten als gelesen markiert}}"
+			}
+		}
 	},
 	"e": {
 		"auth": "Der Mailserver hat Benutzername oder Passwort abgelehnt. Prüfe sie unter Einstellungen → Postfächer.",
@@ -289,7 +324,14 @@
 		"vacationText": "Schreib die Antwort, die andere bekommen.",
 		"noSieve": "Der Server dieses Postfachs führt keine Filter aus (er hat kein Sieve).",
 		"sieve": "Der Server hat die Filter abgelehnt: {reason}",
-		"rulesJSON": "Die Filter konnten nicht gelesen werden. Lade die Seite neu und versuch es noch einmal."
+		"rulesJSON": "Die Filter konnten nicht gelesen werden. Lade die Seite neu und versuch es noch einmal.",
+		"standardFolder": "Posteingang, Gesendet, Entwürfe, Archiv, Spam und Papierkorb können nicht umbenannt oder gelöscht werden.",
+		"folderName": "Dieser Ordnername geht nicht.",
+		"folderExists": "Es gibt schon einen Ordner mit diesem Namen.",
+		"emptyOnly": "Nur Papierkorb und Spam können geleert werden.",
+		"noList": "Diese Nachricht kommt nicht von einer Mailingliste.",
+		"unsubscribe": "Die Liste war nicht erreichbar. Versuch es später noch einmal.",
+		"noSender": "Diese Nachricht hat keinen Absender zum Blockieren."
 	},
 	"acc": {
 		"settings": {
@@ -508,7 +550,31 @@
 				"forward": "Weiterleiten an",
 				"delete": "Löschen",
 				"stop": "Weitere Filter stoppen"
-			}
+			},
+			"blocked": "Blockiert: {email}"
+		},
+		"c": {
+			"title": "Kontakte",
+			"lead": "Die Leute, denen du schreibst. Petrel schlägt sie vor, während du eine Adresse tippst.",
+			"add": "Kontakt hinzufügen",
+			"edit": "Kontakt bearbeiten",
+			"export": "Exportieren (.vcf)",
+			"import": ".vcf importieren",
+			"imported": "{n, plural, one {# Kontakt importiert} other {# Kontakte importiert}}.",
+			"noFile": "Wähle eine .vcf-Datei zum Importieren.",
+			"badFile": "Diese Datei ließ sich nicht als vCards lesen.",
+			"phone": "Telefon",
+			"company": "Firma",
+			"notes": "Notizen",
+			"saved": "Kontakte",
+			"learned": "Weitere Kontakte",
+			"learnedHint": "Leute aus deinen Mails. Übernimm jemanden, um ihn zu deinen Kontakten hinzuzufügen.",
+			"search": "Kontakte durchsuchen",
+			"write": "Schreiben",
+			"keep": "Übernehmen",
+			"none": "Noch keine Kontakte. Füge einen hinzu, importiere eine .vcf-Datei oder übernimm jemanden aus „Weitere Kontakte“.",
+			"noneLearned": "Noch niemand: Leute, mit denen du Mails austauschst, erscheinen hier.",
+			"noMatch": "Niemand passt dazu."
 		}
 	},
 	"tern": {

@@ -167,6 +167,7 @@ type sample struct {
 	replyTo    string // the Message-ID this answers
 	refs       []string
 	files      []file
+	list       string // List-Unsubscribe, for newsletters
 }
 
 var pdf = []byte("%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 200 100]/Parent 2 0 R>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n")
@@ -209,6 +210,7 @@ func seed() {
 		html:  `<table width="100%" style="background:#f4f6fb;font-family:Helvetica,Arial,sans-serif"><tr><td align="center" style="padding:24px"><table width="560" style="background:#fff;border-radius:12px"><tr><td><img src="https://images.example.com/skyline/header.png" width="560" height="140" alt="Skyline Travel"></td></tr><tr><td style="padding:24px"><h1 style="font-size:22px;color:#1d3557">Your trip is confirmed! ✈️</h1><p><b>Booking reference:</b> K7Q2XZ</p><p><b>Outbound:</b> Fri, Dec 12 · BER 07:35 → LIS 10:20<br><b>Return:</b> Tue, Dec 16 · LIS 18:05 → BER 22:40</p><p><a href="https://example.com/manage" style="background:#e63946;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Manage booking</a></p><img src="https://track.example.com/open.gif?u=sam" width="1" height="1" alt=""></td></tr></table></td></tr></table><script>alert("this never runs")</script>`,
 		files: []file{{name: "E-ticket-K7Q2XZ.pdf", typ: "application/pdf", body: pdf}}})
 	deliver(p, "INBOX", sample{from: byte_, to: []string{p}, subject: "The Weekly Byte — Issue #142: Tiny tools, big wins", ago: 28 * h,
+		list: "<mailto:leave@weeklybyte.test?subject=unsubscribe>, <https://weeklybyte.example/unsubscribe/142>",
 		html: `<div style="max-width:600px;margin:auto;font-family:Georgia,serif;color:#222"><img src="https://cdn.example.com/weeklybyte/142.jpg" width="600" height="200" alt="The Weekly Byte"><h1>Tiny tools, big wins</h1><p>This week: why small CLI tools keep winning, a gentle intro to JMAP, and five keyboard-driven apps worth trying.</p><h3>1. The case for tiny tools</h3><p>Single-purpose utilities are easier to trust, easier to replace, and easier to compose…</p><h3>2. JMAP in 10 minutes</h3><p>The modern mail protocol replaces IMAP's stateful sessions with plain JSON over HTTP…</p><p><a href="https://example.com/issues/142">Read the full issue</a></p></div>`})
 	deliver(p, "INBOX", sample{from: mom, to: []string{p}, subject: "Photos from Sunday 📷", ago: 2 * day, flagged: true,
 		text:  "Hi sweetie,\n\nHere are the photos from Sunday's lunch. Grandpa loved the cake! Let me know if you want the originals, these are a bit smaller.\n\nLove,\nMom",
@@ -245,6 +247,9 @@ func build(s sample) ([]byte, error) {
 	var h gomail.Header
 	h.SetDate(time.Now().Add(-s.ago))
 	h.SetSubject(s.subject)
+	if s.list != "" {
+		h.Set("List-Unsubscribe", s.list)
+	}
 	h.SetAddressList("From", []*gomail.Address{{Name: s.from.name, Address: s.from.email}})
 	var to []*gomail.Address
 	for _, t := range s.to {

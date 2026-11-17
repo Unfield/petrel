@@ -316,6 +316,7 @@ func (p *pop3Provider) Get(ctx context.Context, id string) (*Message, error) {
 	if ids := msgIDs(pr.header, "In-Reply-To"); len(ids) > 0 {
 		m.InReplyTo = ids[0]
 	}
+	m.Unsubscribe = unsubscribeOf(pr.header)
 	if m.Attachments == nil {
 		m.Attachments = []Attachment{}
 	}

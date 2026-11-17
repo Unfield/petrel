@@ -14,6 +14,7 @@ export const DEFAULT_PREFS: Prefs = {
 	listW: 420,
 	listH: 44,
 	rail: false,
+	notify: false,
 	images: [],
 	labels: [
 		{ name: 'Work', color: '#3b82f6' },
@@ -320,6 +321,63 @@ export class MailStore {
 		// In a conversation, starring stars the newest message.
 		const target = on ? [msgs[msgs.length - 1]] : msgs.filter((m) => m.flagged);
 		this.setFlag(target.map((m) => m.id), on);
+	}
+
+	/** Leaves a message's mailing list: with one click, by email, or on
+	 * the list's own page. */
+	async unsubscribe(id: string) {
+		try {
+			const res = await post<{ done: boolean; url?: string }>('/api/mail/unsubscribe', { id });
+			if (res.done) this.notify(t('m.r.unsubscribed'));
+			else if (res.url) {
+				window.open(res.url, '_blank', 'noopener,noreferrer');
+				this.notify(t('m.r.unsubPage'));
+			}
+		} catch (e) {
+			this.#failed(e);
+		}
+	}
+
+	/** Sends a sender's mail to the trash from now on, and this message too. */
+	async block(m: Summary) {
+		try {
+			const res = await post<{ email: string }>('/api/mail/block', { id: m.id });
+			this.notify(t('m.r.blocked', { email: res.email }));
+			this.trash([this.item(this.openId)?.id ?? m.id]);
+		} catch (e) {
+			this.#failed(e);
+		}
+	}
+
+	/** The mailboxes the open folder shows: one, or a role's in each
+	 * account in view (all inboxes). None for Starred and labels. */
+	boxesHere(): string[] {
+		if (this.folder.includes('~')) return [this.folder];
+		return this.accounts
+			.filter((a) => this.account === 'all' || a.id === this.account)
+			.flatMap((a) => a.mailboxes.filter((b) => b.role === this.folder).map((b) => b.id));
+	}
+
+	/** Empties the open Trash or Spam, or marks the open folder as read. */
+	async folderHere(op: 'empty' | 'readAll') {
+		for (const folder of this.boxesHere()) await this.folderOp(op, { folder });
+		if (op === 'empty') this.items = [];
+	}
+
+	/** Makes, renames, deletes, empties or marks a folder as read. */
+	async folderOp(op: 'create' | 'rename' | 'delete' | 'empty' | 'readAll', args: { account?: number; folder?: string; parent?: string; name?: string }) {
+		try {
+			const res = await post<{ folder?: string; changed: number }>('/api/mail/folders', { op, ...args });
+			// The folder list first, so the new name is there to go to.
+			if (op === 'create' || op === 'rename' || op === 'delete') await this.loadAccounts();
+			if (op === 'delete' && args.folder === this.folder) this.go('inbox');
+			if (op === 'rename' && args.folder === this.folder && res.folder) this.go(res.folder);
+			this.notify(t(`m.fo.done.${op}` as MessageKey, { n: res.changed }));
+			this.refreshSoon(200);
+			return res.folder;
+		} catch (e) {
+			this.#failed(e);
+		}
 	}
 
 	#failed(e: unknown) {

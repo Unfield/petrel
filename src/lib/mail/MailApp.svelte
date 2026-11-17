@@ -47,6 +47,12 @@
 
 		let events: EventSource | undefined;
 		if (accounts.length) {
+			// /mail?to=… opens a message to someone, as from the address book.
+			const to = new URLSearchParams(location.search).get('to');
+			if (to) {
+				history.replaceState(history.state, '', location.pathname);
+				store.compose({ to: to + ', ' });
+			}
 			store.loadAccounts();
 			store.loadList();
 			// New mail and changes from other devices arrive here.
@@ -57,7 +63,10 @@
 				liveTimer = setTimeout(async () => {
 					await store.loadAccounts();
 					await store.loadList({ silent: true });
-					if (store.unread('inbox', 'all') > before) store.notify(t('m.t.newMail'));
+					if (store.unread('inbox', 'all') > before) {
+						store.notify(t('m.t.newMail'));
+						desktop();
+					}
 				}, 400);
 			});
 		}
@@ -68,6 +77,24 @@
 		};
 	});
 	let liveTimer: ReturnType<typeof setTimeout>;
+
+	// A desktop notification, while Petrel is in the background, for the
+	// newest unread message when the inbox is open.
+	function desktop() {
+		if (!store.prefs.notify || typeof Notification === 'undefined' || Notification.permission !== 'granted' || !document.hidden) return;
+		const m = store.folder === 'inbox' ? store.items.find((i) => !i.latest.seen)?.latest : undefined;
+		const from = m?.from[0];
+		const n = new Notification(m ? (from?.name || from?.email || t('m.t.newMail')) : t('m.t.newMail'), {
+			body: m ? `${m.subject || t('m.noSubject')}\n${m.preview}`.slice(0, 180) : undefined,
+			icon: '/favicon.svg',
+			tag: 'petrel-new-mail'
+		});
+		n.onclick = () => {
+			window.focus();
+			if (m) store.open(store.items.find((i) => i.msgs.some((x) => x.id === m.id))?.id ?? m.id);
+			n.close();
+		};
+	}
 
 	// Search as you type, a moment after the last key.
 	let searchTimer: ReturnType<typeof setTimeout>;

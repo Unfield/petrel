@@ -19,6 +19,33 @@
 	const quotas = $derived(store.accounts.filter((a) => a.quota && (!acc || a.id === acc.id)));
 	const pct = (q: { used: number; limit: number }) => (q.limit ? Math.min(100, Math.round((q.used / q.limit) * 100)) : 0);
 	const custom = $derived(acc ? acc.mailboxes.filter((b) => !b.role) : []);
+	// Folders can be made in IMAP and JMAP mailboxes, not POP3.
+	const canFolders = $derived(!!acc && acc.protocol !== 'pop3');
+	let naming = $state<string | null>(null); // '' for a new folder, else the folder being renamed
+	let name = $state('');
+	let menu = $state('');
+	$effect(() => {
+		const close = () => (menu = '');
+		window.addEventListener('petrel:closemenus', close);
+		return () => window.removeEventListener('petrel:closemenus', close);
+	});
+
+	function startNaming(id: string, current = '') {
+		naming = id;
+		name = current;
+		menu = '';
+	}
+	async function finishNaming() {
+		const n = name.trim();
+		const id = naming;
+		naming = null;
+		if (!n || !acc || id === null) return;
+		if (id === '') {
+			const made = await store.folderOp('create', { account: acc.id, name: n });
+			if (made) store.go(made);
+		} else store.folderOp('rename', { folder: id, name: n });
+	}
+	const focus = (el: HTMLInputElement) => el.focus();
 	const count = (role: string) => (role === 'inbox' || role === 'junk' ? store.unread(role) : role === 'drafts' ? draftCount() : 0);
 	function draftCount() {
 		let n = 0;
@@ -39,14 +66,40 @@
 		</button>
 	{/each}
 
-	{#if custom.length}
+	{#if custom.length || canFolders}
 		<div class="nav-sep"></div>
-		<div class="nav-section">{t('m.folders')}</div>
+		<div class="nav-section sec-row">
+			<span>{t('m.folders')}</span>
+			{#if canFolders}<button class="sec-add" onclick={() => startNaming('')} title={t('m.fo.new')} aria-label={t('m.fo.new')}><Icon name="plus" size={14} /></button>{/if}
+		</div>
 		{#each custom as b (b.id)}
-			<button class="nav-item" class:active={store.folder === b.id} class:has-unread={b.unread > 0} title={b.name} onclick={() => store.go(b.id)}>
-				<Icon name="folder" /><span class="label">{b.name}</span>{#if b.unread}<span class="count">{b.unread}</span>{/if}
-			</button>
+			{#if naming === b.id}
+				<form class="naming" onsubmit={(e) => (e.preventDefault(), finishNaming())}>
+					<Icon name="folder" /><input use:focus bind:value={name} onblur={finishNaming} onkeydown={(e) => e.key === 'Escape' && (e.stopPropagation(), (naming = null))} aria-label={t('m.fo.name')} />
+				</form>
+			{:else}
+				<div class="folder-row">
+					<button class="nav-item" class:active={store.folder === b.id} class:has-unread={b.unread > 0} title={b.name} onclick={() => store.go(b.id)}>
+						<Icon name="folder" /><span class="label">{b.name}</span>{#if b.unread}<span class="count">{b.unread}</span>{/if}
+					</button>
+					<div class="pop-wrap fmenu">
+						<button class="fmore" class:open={menu === b.id} onclick={(e) => (e.stopPropagation(), (menu = menu === b.id ? '' : b.id))} aria-label={t('m.a.more')} aria-expanded={menu === b.id}><Icon name="more" size={16} /></button>
+						{#if menu === b.id}
+							<div class="pop" role="menu">
+								<button role="menuitem" onclick={() => startNaming(b.id, b.name)}><Icon name="edit" size={16} />{t('m.fo.rename')}</button>
+								{#if b.unread}<button role="menuitem" onclick={() => ((menu = ''), store.folderOp('readAll', { folder: b.id }))}><Icon name="mailOpen" size={16} />{t('m.fo.readAll')}</button>{/if}
+								<button role="menuitem" class="danger" onclick={() => ((menu = ''), confirm(t('m.fo.deleteConfirm', { name: b.name, n: b.total })) && store.folderOp('delete', { folder: b.id }))}><Icon name="trash" size={16} />{t('m.fo.delete')}</button>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		{/each}
+		{#if naming === ''}
+			<form class="naming" onsubmit={(e) => (e.preventDefault(), finishNaming())}>
+				<Icon name="folder" /><input use:focus bind:value={name} placeholder={t('m.fo.name')} onblur={finishNaming} onkeydown={(e) => e.key === 'Escape' && (e.stopPropagation(), (naming = null))} aria-label={t('m.fo.name')} />
+			</form>
+		{/if}
 	{/if}
 
 	{#if store.prefs.labels.length}
@@ -126,6 +179,89 @@
 		display: grid;
 		place-items: center;
 		width: 18px;
+	}
+	:global(.app.rail) .sec-add,
+	:global(.app.rail) .fmenu,
+	:global(.app.rail) .naming {
+		display: none;
+	}
+	.sec-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.sec-add {
+		border: 0;
+		background: none;
+		color: var(--text-3);
+		width: 22px;
+		height: 22px;
+		border-radius: 6px;
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		margin-inline-end: -6px;
+	}
+	.sec-add:hover {
+		background: var(--surface-3);
+		color: var(--text);
+	}
+	.folder-row {
+		position: relative;
+	}
+	.fmenu {
+		position: absolute;
+		inset-inline-end: 6px;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+	.fmore {
+		border: 0;
+		background: var(--surface-3);
+		color: var(--text-2);
+		width: 26px;
+		height: 26px;
+		border-radius: 999px;
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		opacity: 0;
+	}
+	.folder-row:hover .fmore,
+	.fmore:focus-visible,
+	.fmore.open {
+		opacity: 1;
+	}
+	.folder-row:hover :global(.count) {
+		visibility: hidden;
+	}
+	.fmenu .pop {
+		inset-inline-start: auto;
+		inset-inline-end: 0;
+		z-index: 30;
+	}
+	.danger {
+		color: var(--danger) !important;
+	}
+	.naming {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		min-height: var(--side-item);
+		padding-inline: 14px 8px;
+		color: var(--text-2);
+	}
+	.naming input {
+		flex: 1;
+		min-width: 0;
+		font: inherit;
+		height: 28px;
+		padding-inline: 8px;
+		border-radius: 8px;
+		border: 1px solid var(--accent);
+		background: var(--surface);
+		color: var(--text);
+		outline: none;
 	}
 	.compose-btn:disabled {
 		opacity: 0.5;

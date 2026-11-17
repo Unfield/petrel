@@ -71,10 +71,11 @@ type AttachmentView struct {
 // MessageView is a whole message, cleaned to show.
 type MessageView struct {
 	SummaryView
-	ReplyTo     []mail.Address   `json:"replyTo"`
-	Bcc         []mail.Address   `json:"bcc"`
-	Attachments []AttachmentView `json:"attachments"`
-	Body        mail.Body        `json:"body"`
+	ReplyTo     []mail.Address    `json:"replyTo"`
+	Bcc         []mail.Address    `json:"bcc"`
+	Attachments []AttachmentView  `json:"attachments"`
+	Body        mail.Body         `json:"body"`
+	Unsubscribe *mail.Unsubscribe `json:"unsubscribe,omitempty"`
 }
 
 // UserID is the signed-in user's ID.

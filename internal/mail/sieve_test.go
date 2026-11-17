@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	gomail "github.com/emersion/go-message/mail"
 )
 
 func TestScript(t *testing.T) {
@@ -183,4 +185,21 @@ func contains(list []string, s string) bool {
 		}
 	}
 	return false
+}
+
+func TestUnsubscribe(t *testing.T) {
+	var h gomail.Header
+	h.Set("List-Unsubscribe", "<mailto:leave@list.example?subject=unsubscribe>, <https://list.example/u/123>")
+	h.Set("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
+	if u := unsubscribeOf(h); u == nil || u.URL != "https://list.example/u/123" || u.Mailto != "mailto:leave@list.example?subject=unsubscribe" || !u.OneClick {
+		t.Errorf("both: %+v", u)
+	}
+	h.Set("List-Unsubscribe", "<http://list.example/u>")
+	if u := unsubscribeOf(h); u == nil || u.OneClick {
+		t.Errorf("one click over http: %+v", u)
+	}
+	h.Set("List-Unsubscribe", "<javascript:alert(1)>")
+	if u := unsubscribeOf(h); u != nil {
+		t.Errorf("javascript: %+v", u)
+	}
 }

@@ -431,3 +431,150 @@ func TestIdentities(t *testing.T) {
 		t.Errorf("an empty rule: %d", p.Status)
 	}
 }
+
+// TestFolderTools: folders, emptying the trash, marking all as read, the
+// original message and the print page.
+func TestFolderTools(t *testing.T) {
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	ip, sp, _ := mailServer(t)
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	c.PostForm("/settings/mailboxes?/connect", url.Values{
+		"email": {"ada@example.test"}, "password": {"secret"}, "protocol": {"imap"},
+		"host": {"127.0.0.1"}, "port": {strconv.Itoa(ip)}, "security": {"plain"},
+		"smtpHost": {"127.0.0.1"}, "smtpPort": {strconv.Itoa(sp)}, "smtpSecurity": {"plain"},
+	})
+	var accounts []app.AccountView
+	api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+	acc := accounts[0].ID
+	box := func(role string) string {
+		api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+		for _, b := range accounts[0].Mailboxes {
+			if b.Role == role {
+				return b.ID
+			}
+		}
+		return ""
+	}
+	for i := range 3 {
+		api(t, c, "POST", "/api/mail/send", map[string]any{"accountId": acc, "to": "ada@example.test", "subject": fmt.Sprintf("Tool %d", i), "html": "<p>x</p>", "text": "x"}, nil)
+	}
+
+	// Folders: make one, rename it, refuse the standard ones, delete it.
+	var out struct {
+		Folder  string
+		Changed int
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "create", "account": acc, "name": "Projects"}, &out); s != 200 || out.Folder == "" {
+		t.Fatalf("create: %d %+v", s, out)
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "create", "account": acc, "name": "Projects"}, nil); s != 400 {
+		t.Errorf("a second Projects: %d", s)
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "rename", "folder": out.Folder, "name": "Clients"}, &out); s != 200 {
+		t.Fatalf("rename: %d", s)
+	}
+	names := func() string {
+		api(t, c, "GET", "/api/mail/accounts", nil, &accounts)
+		var n []string
+		for _, b := range accounts[0].Mailboxes {
+			n = append(n, b.Name)
+		}
+		return strings.Join(n, ",")
+	}
+	if n := names(); !strings.Contains(n, "Clients") || strings.Contains(n, "Projects") {
+		t.Errorf("after renaming: %s", n)
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "delete", "folder": box("inbox")}, nil); s != 400 {
+		t.Errorf("deleted the inbox: %d", s)
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "delete", "folder": out.Folder}, nil); s != 200 || strings.Contains(names(), "Clients") {
+		t.Errorf("delete: %d %s", s, names())
+	}
+
+	// Mark all as read.
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "readAll", "folder": box("inbox")}, &out); s != 200 || out.Changed < 3 {
+		t.Errorf("read all: %d %+v", s, out)
+	}
+	var unread list
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox&unread=true", nil, &unread)
+	if unread.Total != 0 {
+		t.Errorf("unread after reading all: %d", unread.Total)
+	}
+
+	// The original, and the print page.
+	var in list
+	api(t, c, "GET", "/api/mail/messages?mailbox=inbox", nil, &in)
+	id := in.Messages[0].ID
+	if p := c.Get("/api/mail/raw?id=" + url.QueryEscape(id)); p.Status != 200 || !strings.Contains(p.Body, "Subject: Tool") || !strings.HasPrefix(p.Header.Get("Content-Type"), "text/plain") {
+		t.Errorf("raw: %d %s", p.Status, p.Header.Get("Content-Type"))
+	}
+	if p := c.Get("/api/mail/raw?download=1&id=" + url.QueryEscape(id)); !strings.Contains(p.Header.Get("Content-Disposition"), "message.eml") {
+		t.Errorf("download: %v", p.Header)
+	}
+	if p := c.Get("/mail/print?id=" + url.QueryEscape(id)); p.Status != 200 || !strings.Contains(p.Body, "Tool") {
+		t.Errorf("print: %d", p.Status)
+	}
+
+	// Empty the trash, and only the trash.
+	ids := []string{}
+	for _, m := range in.Messages {
+		ids = append(ids, m.ID)
+	}
+	api(t, c, "POST", "/api/mail/actions", map[string]any{"ids": ids, "action": "trash"}, nil)
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "empty", "folder": box("inbox")}, nil); s != 400 {
+		t.Errorf("emptied the inbox: %d", s)
+	}
+	if s := api(t, c, "POST", "/api/mail/folders", map[string]any{"op": "empty", "folder": box("trash")}, &out); s != 200 || out.Changed != len(ids) {
+		t.Errorf("empty: %d %+v", s, out)
+	}
+	var trash list
+	api(t, c, "GET", "/api/mail/messages?mailbox=trash", nil, &trash)
+	if trash.Total != 0 {
+		t.Errorf("trash after emptying: %d", trash.Total)
+	}
+}
+
+// TestContacts: the address book, with vCards in and out.
+func TestContacts(t *testing.T) {
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	if p := c.PostForm("/contacts?/save", url.Values{"name": {"Charles Babbage"}, "email": {"Charles@Engine.example"}, "company": {"Difference, Inc."}}); p.Status != 200 {
+		t.Fatalf("save: %d %s", p.Status, p.Body)
+	}
+	// Changing the address replaces the contact.
+	c.PostForm("/contacts?/save", url.Values{"was": {"charles@engine.example"}, "name": {"Charles Babbage"}, "email": {"cb@engine.example"}, "phone": {"+44 20 1234"}})
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	fw, _ := mw.CreateFormFile("file", "people.vcf")
+	io.WriteString(fw, "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Mary Somerville\r\nitem1.EMAIL;TYPE=INTERNET:mary@science.example\r\nNOTE:Line one\\nline two\r\nEND:VCARD\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:No Address\r\nEND:VCARD\r\n")
+	mw.Close()
+	req, _ := http.NewRequest("POST", c.URL("/contacts?/import"), &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("Origin", c.URL(""))
+	if p := c.Do(req); p.Status != 200 {
+		t.Fatalf("import: %d %s", p.Status, p.Body)
+	}
+	page := c.Get("/contacts")
+	for _, want := range []string{"Charles Babbage", "cb@engine.example", "Mary Somerville"} {
+		if !strings.Contains(page.Body, want) {
+			t.Errorf("contacts page lacks %q", want)
+		}
+	}
+	if strings.Contains(page.Body, "charles@engine.example") {
+		t.Error("the old address stayed")
+	}
+	vcf := c.Get("/api/contacts/export")
+	if !strings.Contains(vcf.Body, "FN:Mary Somerville") || !strings.Contains(vcf.Body, `NOTE:Line one\nline two`) || !strings.Contains(vcf.Body, "TEL:+44 20 1234") {
+		t.Errorf("export: %s", vcf.Body)
+	}
+	c.PostForm("/contacts?/remove", url.Values{"email": {"mary@science.example"}})
+	if strings.Contains(c.Get("/contacts").Body, "Mary Somerville") {
+		t.Error("removed contact still there")
+	}
+	var people []map[string]string
+	api(t, c, "GET", "/api/mail/contacts?q=babb", nil, &people)
+	if len(people) != 1 || people[0]["email"] != "cb@engine.example" {
+		t.Errorf("suggestions: %+v", people)
+	}
+}

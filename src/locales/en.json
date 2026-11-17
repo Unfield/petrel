@@ -6,7 +6,8 @@
 		"signOut": "Sign out",
 		"language": "Language",
 		"mailboxes": "Mailboxes",
-		"team": "Team"
+		"team": "Team",
+		"contacts": "Contacts"
 	},
 	"home": {
 		"tagline": "Modern, open-source webmail",
@@ -202,7 +203,11 @@
 			"labels": "Labels",
 			"labelsSub": "Labels sync to your mail server as keywords.",
 			"addLabel": "Add label",
-			"remove": "Remove"
+			"remove": "Remove",
+			"notify": "Desktop notifications",
+			"notifySub": "Show new mail while Petrel is in the background",
+			"notifyNone": "This browser can’t show notifications.",
+			"notifyBlocked": "The browser blocks notifications for Petrel. Allow them in its site settings."
 		},
 		"p": {
 			"placeholder": "Type a command…",
@@ -250,7 +255,37 @@
 		"labels": "Labels",
 		"storage": "{used} of {total} used",
 		"storageUsed": "{used} used",
-		"storageOf": "Storage of {email}"
+		"storageOf": "Storage of {email}",
+		"r": {
+			"date": "Date",
+			"attachments": "Attachments",
+			"print": "Print",
+			"source": "Show original",
+			"download": "Download (.eml)",
+			"block": "Block {email}",
+			"blocked": "Blocked {email}: their mail goes to the trash from now on",
+			"unsubscribe": "Unsubscribe",
+			"unsubscribed": "Unsubscribed. The list shouldn’t write again.",
+			"unsubPage": "The list’s page opened in a new tab: finish there."
+		},
+		"fo": {
+			"new": "New folder",
+			"name": "Folder name",
+			"rename": "Rename",
+			"delete": "Delete folder",
+			"deleteConfirm": "Delete the folder “{name}” and the {n, plural, one {message} other {# messages}} in it? This can’t be undone.",
+			"readAll": "Mark all as read",
+			"emptyTrash": "Empty trash",
+			"emptyJunk": "Empty spam",
+			"emptyConfirm": "Delete everything in this folder for good? This can’t be undone.",
+			"done": {
+				"create": "Folder created",
+				"rename": "Folder renamed",
+				"delete": "Folder deleted",
+				"empty": "{n, plural, one {Deleted # message} other {Deleted # messages}}",
+				"readAll": "{n, plural, one {Marked # message as read} other {Marked # messages as read}}"
+			}
+		}
 	},
 	"e": {
 		"auth": "The mail server refused the username or password. Check them in Settings → Mailboxes.",
@@ -289,7 +324,14 @@
 		"vacationText": "Write the reply people get.",
 		"noSieve": "This mailbox’s server doesn’t run filters (it has no Sieve).",
 		"sieve": "The server refused the filters: {reason}",
-		"rulesJSON": "The filters couldn’t be read. Reload the page and try again."
+		"rulesJSON": "The filters couldn’t be read. Reload the page and try again.",
+		"standardFolder": "Inbox, Sent, Drafts, Archive, Spam and Trash can’t be renamed or deleted.",
+		"folderName": "That folder name can’t be used.",
+		"folderExists": "There’s already a folder with that name.",
+		"emptyOnly": "Only Trash and Spam can be emptied.",
+		"noList": "This message isn’t from a mailing list.",
+		"unsubscribe": "The list couldn’t be reached. Try again later.",
+		"noSender": "This message has no sender to block."
 	},
 	"acc": {
 		"settings": {
@@ -508,7 +550,31 @@
 				"forward": "Forward to",
 				"delete": "Delete",
 				"stop": "Stop other filters"
-			}
+			},
+			"blocked": "Blocked: {email}"
+		},
+		"c": {
+			"title": "Contacts",
+			"lead": "The people you write to. Petrel suggests them as you type an address.",
+			"add": "Add a contact",
+			"edit": "Edit contact",
+			"export": "Export (.vcf)",
+			"import": "Import .vcf",
+			"imported": "{n, plural, one {Imported # contact} other {Imported # contacts}}.",
+			"noFile": "Choose a .vcf file to import.",
+			"badFile": "That file couldn’t be read as vCards.",
+			"phone": "Phone",
+			"company": "Company",
+			"notes": "Notes",
+			"saved": "Contacts",
+			"learned": "Other contacts",
+			"learnedHint": "People from your mail. Keep one to add it to your contacts.",
+			"search": "Search contacts",
+			"write": "Write",
+			"keep": "Keep",
+			"none": "No contacts yet. Add one, import a .vcf file, or keep someone from Other contacts.",
+			"noneLearned": "No one yet: people you write to and hear from show up here.",
+			"noMatch": "No one matches that."
 		}
 	}
 }

@@ -140,6 +140,17 @@ type Message struct {
 	Attachments []Attachment `json:"attachments"`
 	InReplyTo   string       `json:"-"`
 	References  []string     `json:"-"`
+	// Unsubscribe is how to leave the mailing list it came from, if any.
+	Unsubscribe *Unsubscribe `json:"unsubscribe,omitempty"`
+}
+
+// Unsubscribe is a message's List-Unsubscribe (RFC 2369): a web address,
+// an email address, or both. OneClick means the web address takes a POST
+// and needs no page (RFC 8058).
+type Unsubscribe struct {
+	URL      string `json:"url,omitempty"`
+	Mailto   string `json:"mailto,omitempty"`
+	OneClick bool   `json:"oneClick,omitempty"`
 }
 
 // Query selects messages. MailboxID "" with Flagged set means flagged

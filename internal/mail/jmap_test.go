@@ -123,6 +123,7 @@ func TestJMAP(t *testing.T) {
 		t.Error("the state didn't change")
 	}
 
+	checkFolders(t, lena, got.ID)
 	m, err := lena.Get(ctx, got.ID)
 	if err != nil {
 		t.Fatal(err)

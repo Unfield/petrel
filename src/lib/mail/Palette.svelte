@@ -20,6 +20,7 @@
 		c.push({ g: A, icon: 'sliders', label: t('m.s.title'), run: () => (store.ui.settings = true) });
 		c.push({ g: A, icon: 'keyboard', label: t('m.h.title'), kbd: '?', run: () => (store.ui.help = true) });
 		c.push({ g: A, icon: 'inbox', label: t('m.a.mailboxes'), run: () => (location.href = '/settings/mailboxes') });
+		c.push({ g: A, icon: 'user', label: t('nav.contacts'), run: () => (location.href = '/contacts') });
 		for (const f of ROLE_FOLDERS) c.push({ g: G, icon: f.icon, label: t('m.p.goTo', { x: t(`m.${f.id}`) }), run: () => store.go(f.id) });
 		for (const a of store.accounts) c.push({ g: G, icon: 'layers', label: t('m.p.goTo', { x: a.displayName || a.email }), run: () => store.go('inbox', a.id) });
 		for (const [m, i] of [['light', 'sun'], ['dark', 'moon'], ['system', 'monitor']] as const)

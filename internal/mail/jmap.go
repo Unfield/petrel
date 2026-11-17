@@ -279,6 +279,9 @@ type jmapEmail struct {
 	HTMLBody      []jmapPart           `json:"htmlBody"`
 	Attachments   []jmapPart           `json:"attachments"`
 	BodyValues    map[string]bodyValue `json:"bodyValues"`
+	BlobID        string               `json:"blobId"`
+	Unsubscribe   []string             `json:"header:List-Unsubscribe:asURLs"`
+	UnsubPost     *string              `json:"header:List-Unsubscribe-Post:asText"`
 }
 
 type jmapPart struct {
@@ -428,7 +431,8 @@ func (p *jmapProvider) getEmail(ctx context.Context, id string) (*jmapEmail, err
 	if err != nil {
 		return nil, err
 	}
-	props := append(append([]string{}, summaryProps...), "bcc", "replyTo", "inReplyTo", "references", "textBody", "htmlBody", "attachments", "bodyValues")
+	props := append(append([]string{}, summaryProps...), "bcc", "replyTo", "inReplyTo", "references", "textBody", "htmlBody", "attachments", "bodyValues", "blobId",
+		"header:List-Unsubscribe:asURLs", "header:List-Unsubscribe-Post:asText")
 	res, err := p.call(ctx, nil, invocation{"Email/get", map[string]any{
 		"accountId": acc, "ids": []string{id}, "properties": props,
 		"fetchTextBodyValues": true, "fetchHTMLBodyValues": true, "maxBodyValueBytes": 4 << 20,
@@ -454,6 +458,11 @@ func (p *jmapProvider) Get(ctx context.Context, id string) (*Message, error) {
 		return nil, err
 	}
 	m := &Message{Summary: e.summary(), ReplyTo: addrs(e.ReplyTo), Bcc: addrs(e.Bcc), References: e.References, Attachments: []Attachment{}}
+	post := ""
+	if e.UnsubPost != nil {
+		post = *e.UnsubPost
+	}
+	m.Unsubscribe = unsubscribe(e.Unsubscribe, post)
 	if len(e.InReplyTo) > 0 {
 		m.InReplyTo = e.InReplyTo[0]
 	}
@@ -499,28 +508,37 @@ func (p *jmapProvider) Attachment(ctx context.Context, id, attID string) (Attach
 	if att == nil {
 		return Attachment{}, nil, ErrNotFound
 	}
+	body, err := p.download(ctx, att.ID, att.Type, att.Name)
+	if err != nil {
+		return Attachment{}, nil, err
+	}
+	return *att, body, nil
+}
+
+// download reads a blob.
+func (p *jmapProvider) download(ctx context.Context, blob, typ, name string) (io.ReadCloser, error) {
 	s, err := p.getSession(ctx)
 	if err != nil {
-		return Attachment{}, nil, err
+		return nil, err
 	}
-	u := strings.NewReplacer("{accountId}", url.PathEscape(s.account), "{blobId}", url.PathEscape(att.ID),
-		"{type}", url.QueryEscape(att.Type), "{name}", url.PathEscape(att.Name)).Replace(s.DownloadURL)
+	u := strings.NewReplacer("{accountId}", url.PathEscape(s.account), "{blobId}", url.PathEscape(blob),
+		"{type}", url.QueryEscape(typ), "{name}", url.PathEscape(name)).Replace(s.DownloadURL)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
-		return Attachment{}, nil, err
+		return nil, err
 	}
 	if err := p.auth(req); err != nil {
-		return Attachment{}, nil, err
+		return nil, err
 	}
 	res, err := p.http.Do(req)
 	if err != nil {
-		return Attachment{}, nil, err
+		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
 		res.Body.Close()
-		return Attachment{}, nil, fmt.Errorf("mail: downloading: %s", res.Status)
+		return nil, fmt.Errorf("mail: downloading: %s", res.Status)
 	}
-	return *att, res.Body, nil
+	return res.Body, nil
 }
 
 func (p *jmapProvider) set(ctx context.Context, args map[string]any) error {

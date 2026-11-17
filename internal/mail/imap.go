@@ -468,6 +468,7 @@ func (p *imapProvider) Get(ctx context.Context, id string) (*Message, error) {
 		if ids := msgIDs(pr.header, "In-Reply-To"); len(ids) > 0 {
 			msg.InReplyTo = ids[0]
 		}
+		msg.Unsubscribe = unsubscribeOf(pr.header)
 		if msg.Attachments == nil {
 			msg.Attachments = []Attachment{}
 		}

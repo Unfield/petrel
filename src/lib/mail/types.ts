@@ -45,6 +45,7 @@ export type Message = Summary & {
 	bcc: Address[];
 	attachments: Attachment[];
 	body: { html: string; plain: boolean; hasRemote: boolean };
+	unsubscribe?: { url?: string; mailto?: string; oneClick?: boolean };
 };
 
 /** A row in the list: a conversation, or one message when threads are off. */
@@ -63,6 +64,7 @@ export type Prefs = {
 	rail: boolean;
 	images: string[]; // senders whose images always show
 	labels: Label[];
+	notify: boolean; // desktop notifications for new mail
 };
 
 export type Label = { name: string; color: string };

@@ -16,6 +16,16 @@
 	const LANGS: Record<string, string> = { en: 'English', de: 'Deutsch' };
 	const custom = $derived(!ACCENTS.some(([, c]) => c === store.prefs.accent.toLowerCase()));
 	const set = <K extends keyof Prefs>(k: K, v: Prefs[K]) => store.setPref(k, v);
+
+	// The browser asks once per site; Petrel only notifies while it's in
+	// the background.
+	async function toggleNotify() {
+		if (store.prefs.notify) return set('notify', false);
+		if (typeof Notification === 'undefined') return store.notify(t('m.s.notifyNone'), undefined, true);
+		const ok = Notification.permission === 'granted' || (await Notification.requestPermission()) === 'granted';
+		if (ok) set('notify', true);
+		else store.notify(t('m.s.notifyBlocked'), undefined, true);
+	}
 </script>
 
 {#snippet seg(k: 'mode' | 'density', opts: [string, string, string?][])}
@@ -84,6 +94,13 @@
 			</button>
 		</div>
 
+		<div class="s-row">
+			<button class="switch-row" onclick={toggleNotify} role="switch" aria-checked={store.prefs.notify}>
+				<div><div class="s-label" style="margin:0">{t('m.s.notify')}</div><div class="s-hint">{t('m.s.notifySub')}</div></div>
+				<span class="switch" class:on={store.prefs.notify}></span>
+			</button>
+		</div>
+
 		<h3>{t('m.s.labels')}</h3>
 		<div class="s-row">
 			<div class="s-hint" style="margin:0 0 10px">{t('m.s.labelsSub')}</div>
@@ -114,6 +131,7 @@
 		<h3>{t('m.a.account')}</h3>
 		<div class="s-links">
 			<a class="btn" href="/settings/mailboxes"><Icon name="inbox" size={16} />{t('m.a.mailboxes')}</a>
+			<a class="btn" href="/contacts"><Icon name="user" size={16} />{t('nav.contacts')}</a>
 			<a class="btn" href="/settings"><Icon name="user" size={16} />{t('m.a.account')}</a>
 		</div>
 	</div>

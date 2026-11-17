@@ -115,6 +115,7 @@ func TestRealServers(t *testing.T) {
 	if got.ID == "" || !got.HasAttachment || got.Seen || got.Preview != "Over IMAP" {
 		t.Fatalf("received: %+v", got)
 	}
+	checkFolders(t, lena, got.ID)
 	m, err := lena.Get(ctx, got.ID)
 	if err != nil || !strings.Contains(m.HTML, "<i>IMAP</i>") || len(m.Attachments) != 1 {
 		t.Fatalf("get: %v %+v", err, m)

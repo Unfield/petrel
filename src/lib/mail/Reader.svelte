@@ -19,8 +19,9 @@
 	let moveOpen = $state(false);
 	let labelOpen = $state(false);
 	let snoozeOpen = $state(false);
+	let moreOpen = $state(false);
 	$effect(() => {
-		const close = () => (moveOpen = labelOpen = snoozeOpen = false);
+		const close = () => (moveOpen = labelOpen = snoozeOpen = moreOpen = false);
 		window.addEventListener('petrel:closemenus', close);
 		return () => window.removeEventListener('petrel:closemenus', close);
 	});
@@ -31,7 +32,7 @@
 		// A new conversation starts at the top.
 		void store.openId;
 		scroller?.scrollTo(0, 0);
-		moveOpen = labelOpen = snoozeOpen = false;
+		moveOpen = labelOpen = snoozeOpen = moreOpen = false;
 	});
 
 	const isOpen = (m: Summary, i: number, n: number) => i === n - 1 || !m.seen || store.expanded.has(m.id);
@@ -113,6 +114,21 @@
 				<button class="tb" onclick={() => store.step(1)} disabled={idx >= store.items.length - 1} title="{t('m.a.next')} (J)"><Icon name="down" /></button>
 			{/if}
 			<button class="tb" class:on={flagged} onclick={() => store.toggleFlag(it.id)} title="{flagged ? t('m.a.unstar') : t('m.a.star')} (S)"><Icon name="star" filled={flagged} /></button>
+			{#if last}
+				<div class="pop-wrap">
+					<button class="tb" onclick={() => ((moreOpen = !moreOpen), (moveOpen = labelOpen = snoozeOpen = false))} title={t('m.a.more')} aria-expanded={moreOpen}><Icon name="more" /></button>
+					{#if moreOpen}
+						<div class="pop pop-end" role="menu">
+							<a role="menuitem" href="/mail/print?id={encodeURIComponent(last.id)}{imagesOn(last) ? '&images=1' : ''}" target="_blank" rel="noopener" onclick={() => (moreOpen = false)}><Icon name="printer" size={16} />{t('m.r.print')}</a>
+							<a role="menuitem" href="/api/mail/raw?id={encodeURIComponent(last.id)}" target="_blank" rel="noopener" onclick={() => (moreOpen = false)}><Icon name="code" size={16} />{t('m.r.source')}</a>
+							<a role="menuitem" href="/api/mail/raw?id={encodeURIComponent(last.id)}&download=1" download="message.eml" onclick={() => (moreOpen = false)}><Icon name="download" size={16} />{t('m.r.download')}</a>
+							{#if last.from[0] && !isMe(last.from[0].email)}
+								<button role="menuitem" onclick={() => ((moreOpen = false), store.block(last))}><Icon name="ban" size={16} />{t('m.r.block', { email: last.from[0].email })}</button>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/if}
 		</div>
 		<div class="reader-scroll" bind:this={scroller}>
 			<div class="reader-inner">
@@ -130,6 +146,7 @@
 
 				{#each it.msgs as m, i (m.id)}
 					{@const s = m.from[0] ?? { email: '?' }}
+					{@const full = store.full.get(m.id)}
 					{#if hideMiddle && i > 0 && i < it.msgs.length - 1}
 						{#if i === 1}
 							<div class="earlier"><button onclick={() => store.expanded.add(it.id + ':all')}>{t('m.earlier', { n: it.msgs.length - 2 })}</button></div>
@@ -143,12 +160,14 @@
 							</button>
 						</article>
 					{:else}
-						{@const full = store.full.get(m.id)}
 						<article class="msg">
 							<header class="msg-head">
 								<span class="av lg" style:--h={hue(s.email)}>{initials(s.name || s.email)}</span>
 								<div class="mh-who">
-									<div><b>{display(s)}</b> <span class="mh-email">&lt;{s.email}&gt;</span></div>
+									<div>
+										<b>{display(s)}</b> <span class="mh-email">&lt;{s.email}&gt;</span>
+										{#if full?.unsubscribe}<button class="unsub" onclick={() => store.unsubscribe(m.id)}>{t('m.r.unsubscribe')}</button>{/if}
+									</div>
 									<div class="mh-to">{t('m.toLine', { x: [...m.to, ...m.cc].map((a) => (isMe(a.email) ? t('m.me') : display(a))).join(', ') || '—' })}</div>
 								</div>
 								<div class="mh-side">
@@ -200,3 +219,27 @@
 		</div>
 	{/if}
 </section>
+
+<style>
+	.unsub {
+		border: 0;
+		background: none;
+		padding: 0 0 0 6px;
+		font: inherit;
+		font-size: 12px;
+		color: var(--text-3);
+		text-decoration: underline;
+		cursor: pointer;
+	}
+	.unsub:hover {
+		color: var(--text);
+	}
+	.pop-end {
+		inset-inline-start: auto;
+		inset-inline-end: 0;
+	}
+	.pop a[role='menuitem'] {
+		color: inherit;
+		text-decoration: none;
+	}
+</style>
