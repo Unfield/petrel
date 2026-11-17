@@ -29,6 +29,7 @@
 		{#if done === 'name'}<Alert tone="success" live>{t('acc.settings.saved')}</Alert>{/if}
 	</Card>
 
+	{#if !data.direct}
 	<Card title={t('acc.settings.email')} level={2}>
 		<p class="email">
 			{data.user.email}
@@ -61,9 +62,10 @@
 		</Form>
 		{#if done === 'password'}<Alert tone="success" live>{t('acc.settings.passwordChanged')}</Alert>{/if}
 	</Card>
+	{/if}
 
 	<Card title={t('acc.settings.deleteTitle')} level={2}>
-		<p>{t('acc.settings.deleteBody')}</p>
+		<p>{data.teams ? t('acc.settings.deleteBody') : t('acc.settings.deleteBodyMail')}</p>
 		<form class="delete" method="POST" action="?/delete" bind:this={deleteForm}>
 			<input type="hidden" name="form" value="delete" />
 			<Button type="button" variant="danger" size="sm" onclick={() => (deleteOpen = true)}>{t('acc.settings.deleteButton')}</Button>

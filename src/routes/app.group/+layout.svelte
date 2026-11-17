@@ -12,7 +12,8 @@
 			items: [
 				{ label: t('nav.mailboxes'), href: '/settings/mailboxes', icon: mailIcon },
 				{ label: t('nav.settings'), href: '/settings', icon: settingsIcon },
-				{ label: t('nav.security'), href: '/settings/security', icon: securityIcon }
+				{ label: t('nav.security'), href: '/settings/security', icon: securityIcon },
+				...(data.showTeams ? [{ label: t('nav.team'), href: '/settings/team', icon: settingsIcon }] : [])
 			]
 		}
 	]);

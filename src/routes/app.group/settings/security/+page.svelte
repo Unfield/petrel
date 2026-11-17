@@ -13,6 +13,9 @@
 <p class="lead">{t('acc.security.lead')}</p>
 
 <div class="sections">
+	{#if data.direct}
+		<p class="muted">{t('acc.security.directNote')}</p>
+	{:else}
 	<Card>
 		<TwoStep
 			enabled={data.user.twoStep}
@@ -30,11 +33,16 @@
 	{#if data.providers.length || data.identities.length}
 		<Card><LinkedAccounts identities={data.identities} providers={data.providers} next="/settings/security" unlinkAction="?/unlink" /></Card>
 	{/if}
+	{/if}
 	<Card><Devices sessions={data.sessions} action="?/revoke" othersAction="?/others" /></Card>
 	<Card><ActivityLog entries={data.activity} /></Card>
 </div>
 
 <style>
+	.muted {
+		color: var(--tern-muted);
+		margin: 0;
+	}
 	.sections {
 		display: grid;
 		gap: 1rem;

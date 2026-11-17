@@ -5,7 +5,8 @@
 		"security": "Security",
 		"signOut": "Sign out",
 		"language": "Language",
-		"mailboxes": "Mailboxes"
+		"mailboxes": "Mailboxes",
+		"team": "Team"
 	},
 	"home": {
 		"tagline": "Modern, open-source webmail",
@@ -303,11 +304,13 @@
 			"deleteBody": "Your account, passkeys and sessions are deleted for good, with the teams only you are in. A team you own with others in it needs another owner first.",
 			"deleteButton": "Delete account",
 			"deleteConfirm": "Delete your account?",
-			"deleteUndone": "This can’t be undone."
+			"deleteUndone": "This can’t be undone.",
+			"deleteBodyMail": "Your Petrel account is deleted for good, with its connected mailboxes and their saved passwords, contacts and settings. Your mail stays on your mail servers."
 		},
 		"security": {
 			"title": "Security",
-			"lead": "How you sign in, and where you’re signed in."
+			"lead": "How you sign in, and where you’re signed in.",
+			"directNote": "You sign in with your mailbox’s password, so change it with your mail provider. Below are the devices signed in to Petrel."
 		},
 		"team": {
 			"title": "Team",

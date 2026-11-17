@@ -29,6 +29,10 @@ type App struct {
 	Providers []Provider
 	Mail      *MailAccounts
 
+	// Teams shows teams: inviting people, roles, switching. Off unless
+	// PETREL_TEAMS=true; everyone still has a team of their own.
+	Teams bool
+
 	direct []DirectServer
 	oauth  map[string]*MailProvider
 }
@@ -71,7 +75,7 @@ func Open(logger *slog.Logger) (*App, error) {
 	// PETREL_ALLOW_PRIVATE_HOSTS lets mailboxes on private addresses and any
 	// port connect: for local test servers, never on a public instance.
 	allowPrivate := os.Getenv("PETREL_ALLOW_PRIVATE_HOSTS") == "true"
-	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate), oauth: mailProviders()}
+	a := &App{DB: db, Accounts: acc, Jobs: q, Mail: NewMailAccounts(db, logger, allowPrivate), oauth: mailProviders(), Teams: os.Getenv("PETREL_TEAMS") == "true"}
 	a.Mail.oauth = a.oauth
 	if a.direct, err = loadDirect(); err != nil {
 		return nil, err

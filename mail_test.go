@@ -283,15 +283,19 @@ func TestDirectSignIn(t *testing.T) {
 			t.Fatalf("settings without a team: %d %s", page.Status, page.Location())
 		}
 	}
-	for path, want := range map[string]string{"/settings": "Konto löschen", "/settings/security": "Zwei-Schritt-Anmeldung", "/settings/mailboxes": "Postfächer"} {
+	for path, want := range map[string]string{"/settings": "Konto löschen", "/settings/security": "Angemeldete Geräte", "/settings/mailboxes": "Postfächer"} {
 		req, _ := http.NewRequest("GET", c.URL(path), nil)
 		req.Header.Set("Accept-Language", "de")
 		if page := c.Do(req); page.Status != 200 || !strings.Contains(page.Body, want) {
 			t.Errorf("%s in German: %d, no %q", path, page.Status, want)
 		}
 	}
-	if page := c.Get("/settings/team");page.Status != 200 || !strings.Contains(string(page.Body), "’s team") {
-		t.Errorf("team page: %d %s", page.Status, page.Location())
+	// Teams are off unless PETREL_TEAMS=true.
+	if page := c.Get("/settings/team"); page.Status != 404 {
+		t.Errorf("team page with teams off: %d", page.Status)
+	}
+	if page := c.Get("/settings/security"); !strings.Contains(page.Body, "mailbox’s password") || strings.Contains(page.Body, "Passkeys") {
+		t.Errorf("security page in direct mode")
 	}
 	c.PostForm("/logout", url.Values{})
 	if n, _ := app.Current.Mail.List(t.Context(), 1); len(n) != 0 {
@@ -316,5 +320,37 @@ func TestSignInLimit(t *testing.T) {
 	}
 	if page := c.PostForm("/login?/mailbox", guess); page.Status != 400 || !strings.Contains(page.Body, "Too many") || page.Header.Get("Retry-After") == "" {
 		t.Errorf("the sixth guess: %d %v %s", page.Status, page.Header, page.Body)
+	}
+}
+
+// TestDeleteAccount: deleting the account deletes its mailboxes and their
+// passwords, which Tern doesn't know about.
+func TestDeleteAccount(t *testing.T) {
+	t.Setenv("PETREL_ALLOW_PRIVATE_HOSTS", "true")
+	t.Setenv("PETREL_TEAMS", "true")
+	ip, sp, _ := mailServer(t)
+	c := newClient(t)
+	c.PostForm("/signup", url.Values{"name": {"Ada"}, "email": {"ada@petrel.test"}, "password": {"a long enough password"}})
+	if page := c.Get("/settings/team"); page.Status != 200 || !strings.Contains(page.Body, "Ada’s team") {
+		t.Errorf("team page with teams on: %d", page.Status)
+	}
+	if page := c.PostForm("/settings/mailboxes?/connect", url.Values{
+		"email": {"ada@example.test"}, "password": {"secret"}, "protocol": {"imap"},
+		"host": {"127.0.0.1"}, "port": {strconv.Itoa(ip)}, "security": {"plain"},
+		"smtpHost": {"127.0.0.1"}, "smtpPort": {strconv.Itoa(sp)}, "smtpSecurity": {"plain"},
+	}); page.Status != 200 {
+		t.Fatalf("connect: %d %s", page.Status, page.Body)
+	}
+	var n int
+	app.Current.DB.QueryRow(`SELECT COUNT(*) FROM mail_accounts`).Scan(&n)
+	if n != 1 {
+		t.Fatalf("mailboxes before: %d", n)
+	}
+	if page := c.PostForm("/settings?/delete", url.Values{"form": {"delete"}}); page.Status/100 != 3 {
+		t.Fatalf("delete: %d %s", page.Status, page.Body)
+	}
+	app.Current.DB.QueryRow(`SELECT COUNT(*) FROM mail_accounts`).Scan(&n)
+	if n != 0 {
+		t.Errorf("the mailbox and its password stayed after deleting the account")
 	}
 }

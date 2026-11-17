@@ -11,6 +11,10 @@ import (
 
 type Page struct {
 	User accounts.User `json:"user"`
+	// Direct: the user signs in with their mailbox, so its address and
+	// password are the mail provider’s to change.
+	Direct bool `json:"direct"`
+	Teams  bool `json:"teams"`
 }
 
 func Load(ctx *kit.Ctx) (Page, error) {
@@ -18,7 +22,7 @@ func Load(ctx *kit.Ctx) (Page, error) {
 	if err != nil {
 		return Page{}, err
 	}
-	return Page{User: *u}, nil
+	return Page{User: *u, Direct: app.Current.Direct(), Teams: app.Current.Teams}, nil
 }
 
 type Name struct {
@@ -67,7 +71,12 @@ var Actions = kit.Actions{
 	// their projects (Options.OnDeleteTeam). A team they own with others in
 	// it needs another owner first.
 	"delete": kit.FormAction(func(ctx *kit.Ctx, _ struct{}) (Done, error) {
+		user := app.UserID(ctx)
 		if _, err := do(ctx, "deleted", func() error { return app.Current.Accounts.DeleteAccount(ctx) }); err != nil {
+			return Done{}, err
+		}
+		// Tern deletes the account; Petrel deletes its mailboxes and the rest.
+		if err := app.Current.Mail.DeleteUser(ctx, user); err != nil {
 			return Done{}, err
 		}
 		return Done{}, kit.Redirect(http.StatusSeeOther, "/")

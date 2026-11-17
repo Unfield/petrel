@@ -343,3 +343,24 @@ func (f pop3Flags) SetFlags(ctx context.Context, uidls []string, seen, flagged *
 	}
 	return nil
 }
+
+// DeleteUser removes everything Petrel keeps for a user whose account is
+// deleted: their mailboxes and the passwords for them, contacts, settings,
+// snoozes and uploads. Their mail stays on the mail servers.
+func (m *MailAccounts) DeleteUser(ctx context.Context, userID int64) error {
+	list, err := m.List(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, a := range list {
+		if err := m.Delete(ctx, userID, a.ID); err != nil && !errors.Is(err, ErrNoAccount) {
+			return err
+		}
+	}
+	for _, table := range []string{"uploads", "contacts", "user_prefs", "snoozes"} {
+		if _, err := m.db.ExecContext(ctx, `DELETE FROM `+table+` WHERE user_id = ?`, userID); err != nil {
+			return err
+		}
+	}
+	return nil
+}

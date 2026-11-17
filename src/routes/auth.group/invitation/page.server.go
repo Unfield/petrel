@@ -23,6 +23,9 @@ type Page struct {
 // Load shows the invitation an email links to: to accept signed in with
 // the invited address, or to sign up or in first.
 func Load(ctx *kit.Ctx) (Page, error) {
+	if !app.Current.Teams {
+		return Page{}, kit.NotFound()
+	}
 	token := ctx.URL().Query().Get("token")
 	p := Page{Token: token}
 	inv, err := app.Current.Accounts.InvitationFor(ctx.Request.Context(), token)
@@ -42,6 +45,9 @@ type Accept struct {
 
 var Actions = kit.Actions{
 	"accept": kit.FormAction(func(ctx *kit.Ctx, in Accept) (struct{}, error) {
+		if !app.Current.Teams {
+			return struct{}{}, kit.NotFound()
+		}
 		if _, err := app.Current.Accounts.Require(ctx); err != nil {
 			return struct{}{}, err
 		}

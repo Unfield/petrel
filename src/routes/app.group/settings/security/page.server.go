@@ -16,6 +16,9 @@ type Page struct {
 	Identities []accounts.LinkedIdentity `json:"identities"`
 	Providers  []app.Provider            `json:"providers"`
 	Activity   []accounts.AuditEntry     `json:"activity"`
+	// Direct: signing in is the mailbox’s password, so passkeys, two-step
+	// and linked accounts don’t apply.
+	Direct bool `json:"direct"`
 }
 
 func Load(ctx *kit.Ctx) (Page, error) {
@@ -24,7 +27,7 @@ func Load(ctx *kit.Ctx) (Page, error) {
 	if err != nil {
 		return Page{}, err
 	}
-	p := Page{User: *u, Providers: app.Current.Providers}
+	p := Page{User: *u, Providers: app.Current.Providers, Direct: app.Current.Direct()}
 	if p.Setup, err = acc.PendingTwoStepSetup(ctx); err != nil {
 		return Page{}, err
 	}

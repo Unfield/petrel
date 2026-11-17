@@ -18,6 +18,8 @@ type Shell struct {
 	User  accounts.User         `json:"user"`
 	Team  accounts.Membership   `json:"team"`
 	Teams []accounts.Membership `json:"teams"`
+	// ShowTeams is whether this Petrel shows teams (PETREL_TEAMS).
+	ShowTeams bool `json:"showTeams"`
 }
 
 // LayoutLoad sends signed-out visitors to sign in, and back here after,
@@ -32,5 +34,5 @@ func LayoutLoad(ctx *kit.Ctx) (Shell, error) {
 	if err != nil {
 		return Shell{}, err
 	}
-	return Shell{User: *accounts.Current(ctx), Team: *m, Teams: teams}, nil
+	return Shell{User: *accounts.Current(ctx), Team: *m, Teams: teams, ShowTeams: app.Current.Teams}, nil
 }

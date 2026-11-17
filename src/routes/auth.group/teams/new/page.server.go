@@ -18,6 +18,9 @@ type Page struct {
 }
 
 func Load(ctx *kit.Ctx) (Page, error) {
+	if !app.Current.Teams {
+		return Page{}, kit.NotFound()
+	}
 	if _, err := app.Current.Accounts.Require(ctx); err != nil {
 		return Page{}, err
 	}
@@ -30,6 +33,9 @@ type NewTeam struct {
 
 var Actions = kit.Actions{
 	"create": kit.FormAction(func(ctx *kit.Ctx, in NewTeam) (struct{}, error) {
+		if !app.Current.Teams {
+			return struct{}{}, kit.NotFound()
+		}
 		if _, err := app.Current.Accounts.Require(ctx); err != nil {
 			return struct{}{}, err
 		}

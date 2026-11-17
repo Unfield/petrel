@@ -5,7 +5,8 @@
 		"security": "Sicherheit",
 		"signOut": "Abmelden",
 		"language": "Sprache",
-		"mailboxes": "Postfächer"
+		"mailboxes": "Postfächer",
+		"team": "Team"
 	},
 	"home": {
 		"tagline": "Moderne Open-Source-Webmail",
@@ -303,11 +304,13 @@
 			"deleteBody": "Dein Konto, deine Passkeys und Sitzungen werden endgültig gelöscht, ebenso Teams, in denen nur du bist. Ein Team, das dir gehört und in dem noch andere sind, braucht zuerst einen anderen Inhaber.",
 			"deleteButton": "Konto löschen",
 			"deleteConfirm": "Dein Konto löschen?",
-			"deleteUndone": "Das lässt sich nicht rückgängig machen."
+			"deleteUndone": "Das lässt sich nicht rückgängig machen.",
+			"deleteBodyMail": "Dein Petrel-Konto wird endgültig gelöscht, mit seinen verbundenen Postfächern und deren gespeicherten Passwörtern, Kontakten und Einstellungen. Deine Mails bleiben auf deinen Mailservern."
 		},
 		"security": {
 			"title": "Sicherheit",
-			"lead": "Wie du dich anmeldest und wo du angemeldet bist."
+			"lead": "Wie du dich anmeldest und wo du angemeldet bist.",
+			"directNote": "Du meldest dich mit dem Passwort deines Postfachs an, also änderst du es bei deinem Mail-Anbieter. Unten siehst du die Geräte, die bei Petrel angemeldet sind."
 		},
 		"team": {
 			"title": "Team",

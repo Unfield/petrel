@@ -82,6 +82,8 @@ Petrel reads its settings from the environment, and `tern dev` also from a `.env
 | `TRUSTED_PROXIES` | your reverse proxies' addresses, comma-separated |
 | `PETREL_SECRET_KEY` | at least 32 random characters: encrypts saved mailbox passwords. Without it, Petrel makes `petrel.key` beside the database; back it up with the database |
 | `PETREL_ALLOW_PRIVATE_HOSTS` | `true` lets mailboxes on private addresses and any port connect, for local test servers. Never set it on a public instance |
+| `PETREL_AUTH_MODE`, `PETREL_DIRECT_SERVERS` | sign in with the mailbox itself: see [Direct sign-in](#direct-sign-in) |
+| `PETREL_TEAMS` | `true` shows teams: invitations, roles and a Team page. Off by default; everyone has a team of their own either way |
 | `APP_NAME` | the name shown by authenticator apps and passkey prompts |
 
 ## How it works
@@ -145,6 +147,10 @@ docs/                design notes
 - **Sign-in:**
   - **Petrel accounts** (default): passwords, passkeys, two-step, GitHub or Google sign-in.
   - **Direct mode:** sign in with the mailbox itself.
+- **Safe to run in public:**
+  - mailbox passwords encrypted at rest; deleting an account deletes them
+  - no connections to private addresses or non-mail ports
+  - failed mailbox sign-ins limited per address and per client; settings lookups and connection tests limited per user
 
 ### Direct sign-in
 

@@ -36,11 +36,15 @@ Modern webmail on Tern (Svelte 5 + Go). Speaks JMAP, IMAP4rev2, POP3 and SMTP su
   4. Common guesses (`imap.<domain>`, `mail.<domain>`)
   Outbound connections guarded: block private/loopback IPs, mail ports only, rate-limited, TLS required by default.
 
-## Built (2026-11-16)
-- Providers: IMAP (IDLE, MOVE/COPYUID, special-use + name heuristics), JMAP (Mailbox, Email, Identity, EmailSubmission), POP3 (flags in Petrel's DB), SMTP submission; one `Provider` interface.
-- Accounts mode only for now; connect flow with autodiscovery at Settings → Mailboxes; credentials sealed.
-- Mail app at /mail ported from the mockup: three layouts, density, presets, accent, light/dark/system via light-dark(), en/de, RTL toggle, ⌘K palette, shortcuts, threads, unified inbox, undo, compose with delayed send + undo, live updates over SSE.
+## Built
+- Providers: IMAP (IDLE, MOVE/COPYUID, special-use + name heuristics), JMAP (Mailbox, Email, Identity, EmailSubmission, push), POP3 (flags in Petrel's DB), SMTP submission, XOAUTH2; one `Provider` interface. Tested against in-memory servers and a real Stalwart (`scripts/stalwart-test.sh`).
+- Both sign-in modes. Accounts mode: connect flow with autodiscovery and Gmail/Outlook OAuth. Direct mode: admin-listed servers by domain.
+- Mail app at /mail ported from the mockup: three layouts, density, presets, accent, light/dark/system via light-dark(), en/de, RTL toggle, ⌘K palette, shortcuts, threads, unified inbox, undo, live updates over SSE.
+- Writing: compose with attachments, address suggestions, server-side drafts that autosave, delayed send with undo.
+- Organizing: labels as keywords, snooze (a Snoozed folder plus a job that wakes mail), move, spam.
 - Mail HTML: bluemonday + sandboxed iframe with CSP; remote images opt-in per message or per sender.
+- Account pages, server errors and Tern UI texts in en/de.
+- Limits: failed mailbox sign-ins per address and client, settings lookups and connection tests per user.
 
 ## Decisions made along the way
 - Appearance prefs in a cookie (not localStorage) so the server renders the right theme: no flash, no inline script under Tern's CSP.
@@ -48,3 +52,6 @@ Modern webmail on Tern (Svelte 5 + Go). Speaks JMAP, IMAP4rev2, POP3 and SMTP su
 - Starred = flagged messages across Inbox, Archive and Sent (IMAP) / everything but Trash and Junk (JMAP).
 - No auto-opening the first message: opening marks as read, which should be the reader's choice.
 - `cmd/devmail` instead of Docker for local development.
+- Everyone gets a personal team on first use; teams stay hidden unless `PETREL_TEAMS=true`. A webmail user shouldn't have to know what a team is.
+- In direct mode the mailbox's provider owns the address and password, so Petrel hides email change, password, passkeys and two-step.
+- Deleting an account deletes Petrel's data for it (mailboxes and their passwords, contacts, prefs, snoozes, uploads); Tern has no hook for this, so the delete action does it.
