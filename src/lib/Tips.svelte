@@ -62,7 +62,7 @@
 			open = true;
 		};
 		if (now || Date.now() < warmUntil) go();
-		else timer = setTimeout(go, 250);
+		else timer = setTimeout(go, 500);
 	}
 
 	function hide() {

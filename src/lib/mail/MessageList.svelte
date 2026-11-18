@@ -66,7 +66,7 @@
 
 <section class="pane list-pane" aria-label={store.folderName()}>
 	{#if n}
-		<div class="list-head">
+		<div class="list-head bulk">
 			<button class="icon-btn sm" onclick={toggleAll} title={t('m.a.selectAll')}><Icon name={allChecked ? 'checkSquare' : 'square'} size={20} /></button>
 			<span class="bulk-count">{t('m.selected', { n })}</span><span class="spacer"></span>
 			{#if !store.inTrash}<button class="tb" onclick={bulk((x) => store.archive(x))} title={t('m.a.archive')}><Icon name="archive" /></button>{/if}

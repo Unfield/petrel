@@ -192,7 +192,7 @@
 		<h2>{title}</h2>
 		{#if loading}<span class="spinner"></span>{/if}
 		<span class="spacer"></span>
-		<div class="seg" role="radiogroup" aria-label={t('cal.view')}>
+		<div class="views" role="radiogroup" aria-label={t('cal.view')}>
 			{#each ['day', 'week', 'month', 'agenda'] as const as v (v)}
 				<button class:on={view === v} role="radio" aria-checked={view === v} onclick={() => (view = v)}>{t(`cal.${v}` as MessageKey)}</button>
 			{/each}
@@ -216,7 +216,7 @@
 							{#if !e.allDay}<i>{time(new Date(e.start))}</i>{/if}{e.title}
 						</button>
 					{/each}
-					{#if list.length > 3}<button class="more" onclick={() => ((cursor = d), (view = 'day'))}>{t('cal.more', { n: list.length - 3 })}</button>{/if}
+					{#if list.length > 3}<button class="more-ev" onclick={() => ((cursor = d), (view = 'day'))}>{t('cal.more', { n: list.length - 3 })}</button>{/if}
 				</div>
 			{/each}
 		</div>
@@ -334,9 +334,9 @@
 	:global([dir='rtl']) .cal-head .tb:not(.flip) { transform: scaleX(-1); }
 	:global([dir='rtl']) .cal-head .flip { transform: none; }
 	.spacer { flex: 1; }
-	.seg { display: flex; background: var(--surface-2); border-radius: 10px; padding: 2px; }
-	.seg button { border: 0; background: none; color: var(--text-2); font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
-	.seg button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.1); }
+	.views { display: flex; background: var(--surface-2); border-radius: 10px; padding: 2px; }
+	.views button { border: 0; background: none; color: var(--text-2); font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+	.views button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 2px rgb(0 0 0 / 0.1); }
 	.cal-empty { display: grid; justify-items: center; gap: 6px; padding: 60px 20px; color: var(--text-3); text-align: center; }
 	.cal-empty b { color: var(--text); }
 
@@ -351,7 +351,7 @@
 	.chip-ev.solid { background: color-mix(in oklab, var(--c) 22%, transparent); border-inline-start-color: var(--c); }
 	.chip-ev:hover { background: color-mix(in oklab, var(--c) 16%, transparent); }
 	.chip-ev i { font-style: normal; color: var(--text-3); margin-inline-end: 4px; font-size: 11px; }
-	.more { border: 0; background: none; font: inherit; font-size: 11.5px; color: var(--text-3); text-align: start; padding: 0 6px; cursor: pointer; }
+	.more-ev { border: 0; background: none; font: inherit; font-size: 11.5px; color: var(--text-3); text-align: start; padding: 0 6px; cursor: pointer; }
 
 	.tgrid-head { display: grid; grid-template-columns: 56px repeat(var(--n), minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
 	.th { border: 0; background: none; font: inherit; display: grid; justify-items: center; padding: 6px 0 4px; color: var(--text-2); cursor: pointer; }

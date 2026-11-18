@@ -89,7 +89,7 @@
 			<button class="tb" onclick={() => (store.setSeen(it.msgs.map((m) => m.id), false), offList && store.close())} title={t('m.a.unread')}><Icon name="mail" /></button>
 			<button class="tb" onclick={() => store.junk(items)} title={role === 'junk' ? t('m.a.notJunk') : t('m.a.junk')}><Icon name="spam" /></button>
 			<div class="pop-wrap">
-				<button class="tb" onclick={() => ((moveOpen = !moveOpen), (labelOpen = snoozeOpen = false))} title={t('m.a.moveTo')} aria-expanded={moveOpen}><Icon name="folder" /></button>
+				<button class="tb" onclick={() => ((moveOpen = !moveOpen), (labelOpen = snoozeOpen = moreOpen = false))} title={t('m.a.moveTo')} aria-expanded={moveOpen}><Icon name="folder" /></button>
 				{#if moveOpen}
 					<div class="pop" role="menu">
 						<div class="pop-title">{t('m.a.moveTo')}</div>
@@ -102,12 +102,12 @@
 				{/if}
 			</div>
 			<div class="pop-wrap">
-				<button class="tb" onclick={() => ((labelOpen = !labelOpen), (moveOpen = snoozeOpen = false))} title={t('m.a.label')} aria-expanded={labelOpen}><Icon name="tag" /></button>
+				<button class="tb" onclick={() => ((labelOpen = !labelOpen), (moveOpen = snoozeOpen = moreOpen = false))} title={t('m.a.label')} aria-expanded={labelOpen}><Icon name="tag" /></button>
 				{#if labelOpen}<LabelMenu {store} {items} onclose={() => (labelOpen = false)} />{/if}
 			</div>
 			{#if role !== 'snoozed'}
 				<div class="pop-wrap">
-					<button class="tb" onclick={() => ((snoozeOpen = !snoozeOpen), (moveOpen = labelOpen = false))} title={t('m.a.snooze')} aria-expanded={snoozeOpen}><Icon name="clock" /></button>
+					<button class="tb" onclick={() => ((snoozeOpen = !snoozeOpen), (moveOpen = labelOpen = moreOpen = false))} title={t('m.a.snooze')} aria-expanded={snoozeOpen}><Icon name="clock" /></button>
 					{#if snoozeOpen}<SnoozeMenu {store} {items} onclose={() => (snoozeOpen = false)} />{/if}
 				</div>
 			{/if}

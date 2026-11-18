@@ -12,7 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
-- An empty folder's "All done" message was squeezed into 30 pixels, with its icon and text on top of each other.
+- An empty folder's "All done" message was squeezed into 30 pixels, with its icon and text on top of each other, and the Empty trash and Empty spam buttons grew into large circles.
+- With messages selected, the last actions in the selection bar (Snooze, clear selection) were cut off in a narrow list.
+- Menus:
+  - Snooze options wrapped onto two lines and overlapped each other.
+  - Long entries, such as blocking a long address, spilled out of their row.
+  - Opening Move, Labels or Snooze left the More menu open underneath.
+- The calendar's view switcher and its "+n more" links picked up styles from the mail list.
+- Tooltips wait half a second before they show, instead of a quarter second.
 - The To field in Compose showed a focus box that the other fields don't have.
 - Spacing on the settings pages:
   - **Settings:** the resend-confirmation button sits beside the unconfirmed address, not pressed against the field under it.

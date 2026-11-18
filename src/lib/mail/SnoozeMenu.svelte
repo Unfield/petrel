@@ -32,7 +32,7 @@
 	}
 </script>
 
-<div class="pop" role="menu">
+<div class="pop snooze" role="menu">
 	<div class="pop-title">{t('m.a.snooze')}</div>
 	{#each options as o (o.label)}
 		<button class="lbl" role="menuitem" onclick={() => go(o.when)}><Icon name="clock" size={16} />{o.label}<span class="when">{fmt(o.when)}</span></button>

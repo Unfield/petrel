@@ -167,7 +167,12 @@
 .lh-title { min-width: 0; padding-inline-start: 4px; }
 .list-title { font-weight: 680; font-size: 16.5px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .list-sub { color: var(--text-3); font-size: 12px; white-space: nowrap; }
-.bulk-count { font-weight: 650; padding-inline: 6px; white-space: nowrap; }
+.bulk-count { font-weight: 650; padding-inline: 6px; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* Eight actions have to fit a 360px list: smaller buttons, no gaps. */
+.list-head.bulk { gap: 0; }
+.list-head.bulk .tb { width: 32px; height: 32px; }
+.list-head.bulk .spacer { min-width: 4px; }
+.list-head.bulk .pop { inset-inline-start: auto; inset-inline-end: 0; }
 .chips { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; flex: none; }
 .chip {
   height: 28px; padding-inline: 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
@@ -492,7 +497,7 @@
 .pop-title { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); padding: 8px 10px 6px; font-weight: 680; display: grid; }
 .pop-title span { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; }
 .pop form { margin: 0; }
-.pop [role=menuitem] { display: flex; align-items: center; gap: 10px; width: 100%; height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; text-decoration: none; font-size: 13.5px; text-align: start; }
+.pop [role=menuitem] { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 6px 10px; line-height: 1.3; border: 0; border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; text-decoration: none; font-size: 13.5px; text-align: start; }
 .pop [role=menuitem]:hover { background: var(--surface-2); color: var(--text); }
 .msg.collapsed .msg-head { width: 100%; border: 0; background: none; text-align: start; color: inherit; font: inherit; cursor: pointer; }
 .msg-body { padding-inline-end: 20px; }
@@ -545,13 +550,15 @@
 .c-drop { position: absolute; inset: 44px 8px 56px; border: 2px dashed var(--accent); border-radius: 14px; background: color-mix(in oklab, var(--accent) 8%, var(--surface)); display: grid; place-items: center; align-content: center; gap: 8px; color: var(--accent-ink); font-weight: 650; pointer-events: none; z-index: 4; }
 
 /* ───────────── Labels and snooze ───────────── */
-.pop .lbl { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; font-size: 13.5px; text-align: start; }
+.pop .lbl { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 34px; padding: 6px 10px; line-height: 1.3; border: 0; border-radius: 8px; background: none; color: var(--text-2); cursor: pointer; font-size: 13.5px; text-align: start; }
 .pop .lbl:hover { background: var(--surface-2); color: var(--text); }
 .pop .lbl .box { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--text-3); display: grid; place-items: center; flex: none; }
 .pop .lbl .box.on { background: var(--c); border-color: var(--c); color: #fff; }
 .pop input.newlabel { width: calc(100% - 12px); margin: 4px 6px 6px; height: 32px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; outline: none; }
 .pop input[type=datetime-local] { margin: 4px 6px 8px; width: calc(100% - 12px); height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; padding: 0 8px; }
-.pop .when { margin-inline-start: auto; color: var(--text-3); font-size: 12px; }
+.pop.snooze { min-width: 270px; }
+.pop.snooze .lbl { white-space: nowrap; }
+.pop .when { margin-inline-start: auto; padding-inline-start: 12px; color: var(--text-3); font-size: 12px; white-space: nowrap; }
 .label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .label-row input[type=text] { flex: 1; min-width: 0; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 13.5px; }
 .label-row input[type=color] { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 8px; padding: 2px; background: var(--surface); cursor: pointer; }
